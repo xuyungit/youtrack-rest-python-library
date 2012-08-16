@@ -5,7 +5,7 @@ from jira import JiraException
 class JiraClient(object):
 
     def __init__(self, url, login, password):
-        self._url = (url[:-1] if (url[-1] == '/') else url) + "/rest/api/latest"
+        self._url = (url[:-1] if (url[-1] == '/') else url) + "/rest"
         self._headers = {}
         self._http = httplib2.Http(timeout=10)
         self._login(login, password)
@@ -31,7 +31,7 @@ class JiraClient(object):
         return content if response.status == 200 else None
 
     def _rest_url(self):
-        return self._url + "/api/2.0.alpha1"
+        return self._url + "/api/latest"
 
     def _post(self, url, body):
         headers = self._headers.copy()
