@@ -189,10 +189,8 @@ def process_attachments(source, target, issue):
 def jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id):
     print("source_url      : " + source_url)
     print("source_login    : " + source_login)
-    print("source_password : " + source_password)
     print("target_url      : " + target_url)
     print("target_login    : " + target_login)
-    print("target_password : " + target_password)
     print("project_id      : " + project_id)
 
     source = JiraClient(source_url, source_login, source_password)
