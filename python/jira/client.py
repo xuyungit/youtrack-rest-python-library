@@ -28,7 +28,11 @@ class JiraClient(object):
 
     def get_issue(self, issue_id):
         response, content = self._get(self._rest_url() + "/issue/" + issue_id)
-        return content if response.status == 200 else None
+        if response.status == 200 :
+            return content
+        else:
+            print "Can't get issue " + issue_id
+            return None
 
     def _rest_url(self):
         return self._url + "/api/latest"

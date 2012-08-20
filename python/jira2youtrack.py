@@ -198,7 +198,7 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
 
     target.createProjectDetailed(project_id, project_id, "", target_login)
 
-    issues_count = 5500
+    issues_count = 10
 
     for i in range(0, issues_count):
         try:
