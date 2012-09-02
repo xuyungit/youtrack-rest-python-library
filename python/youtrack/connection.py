@@ -74,11 +74,12 @@ class Connection(object):
     def getIssue(self, id):
         return youtrack.Issue(self._get("/issue/" + id), self)
 
-    def createIssue(self, project, assignee, summary, description, priority=None, type=None, subsystem=None, state=None, affectsVersion=None,
+    def createIssue(self, project, assignee, summary, description, priority=None, type=None, subsystem=None, state=None,
+                    affectsVersion=None,
                     fixedVersion=None, fixedInBuild=None):
-        params = {'project' : project,
-                  'summary' : summary,
-                  'description' : description}
+        params = {'project': project,
+                  'summary': summary,
+                  'description': description}
         if assignee is not None:
             params['assignee'] = assignee
         if priority is not None:
@@ -99,7 +100,8 @@ class Connection(object):
         return self._reqXml('PUT', '/issue?' + urllib.urlencode(params), '')
 
     def get_changes_for_issue(self, issue):
-        return [youtrack.IssueChange(change, self) for change in self._get("/issue/%s/changes" % issue).getElementsByTagName('change')]
+        return [youtrack.IssueChange(change, self) for change in
+                self._get("/issue/%s/changes" % issue).getElementsByTagName('change')]
 
     def getComments(self, id):
         response, content = self._req('GET', '/issue/' + id + '/comment')
@@ -215,7 +217,7 @@ class Connection(object):
         xml += '</list>'
         print xml
         #TODO: convert response xml into python objects
-        return self._reqXml('PUT', '/import/users', xml, 400).toxml()
+        return self._reqXml('PUT', '/import/users', xml.encode('utf-8'), 400).toxml()
 
     def importIssuesXml(self, projectId, assigneeGroup, xml):
         return self._reqXml('PUT', '/import/' + urllib.quote(projectId) + '/issues?' +
@@ -297,7 +299,18 @@ class Connection(object):
         url = '/import/' + urllib.quote(projectId) + '/issues?' + urllib.urlencode({'assigneeGroup': assigneeGroup})
         if isinstance(url, unicode):
             url = url.encode('utf-8')
-        response = self._reqXml('PUT', url, xml, 400).toxml().encode('utf-8')
+        result = self._reqXml('PUT', url, xml, 400)
+        if (result == "") and (len(issues) > 1):
+            for issue in issues:
+                self.importIssues(projectId, assigneeGroup, [issue])
+        response = ""
+        try:
+            response = result.toxml().encode('utf-8')
+        except:
+            print "can't parse response"
+            print "request was"
+            print xml
+            return response
         item_elements = minidom.parseString(response).getElementsByTagName("item")
         if len(item_elements) != len(issues):
             print response
@@ -354,7 +367,8 @@ class Connection(object):
     def setUserGroup(self, user_name, group_name):
         encoded_user_name = urllib.quote(user_name.encode('utf-8'))
         encoded_group_name = urllib.quote(group_name.encode('utf-8'))
-        response, content = self._req('POST', '/admin/user/%s/group/%s' % (encoded_user_name, encoded_group_name), body='')
+        response, content = self._req('POST', '/admin/user/%s/group/%s' % (encoded_user_name, encoded_group_name),
+            body='')
         return response
 
     def createGroup(self, group):
@@ -365,7 +379,8 @@ class Connection(object):
     def addUserRoleToGroup(self, group, userRole):
         url_group_name = urllib.quote(group.name)
         url_role_name = urllib.quote(userRole.name)
-        response, content = self._req('PUT', '/admin/group/%s/role/%s' % (url_group_name, url_role_name), body=userRole.toXml())
+        response, content = self._req('PUT', '/admin/group/%s/role/%s' % (url_group_name, url_role_name),
+            body=userRole.toXml())
         return content
 
     def getRole(self, name):
@@ -391,7 +406,8 @@ class Connection(object):
         url_role_name = urllib.quote(role.name)
         url_new_name = urllib.quote(new_name)
         url_new_dscr = urllib.quote(new_description)
-        content = self._req('POST', '/admin/role/%s?newName=%s&description=%s' % (url_role_name, url_new_name, url_new_dscr))
+        content = self._req('POST',
+            '/admin/role/%s?newName=%s&description=%s' % (url_role_name, url_new_name, url_new_dscr))
         return content
 
     def addPermissionToRole(self, role, permission):
@@ -436,7 +452,7 @@ class Connection(object):
         return [youtrack.Build(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
 
-    def getUsers(self, params=dict([])):
+    def getUsers(self, params={}):
         first = True
         users = []
         position = 0
@@ -455,7 +471,7 @@ class Connection(object):
         response, content = self._req('GET', "/admin/user/?start=%s" % str(start))
         xml = minidom.parseString(content)
         users = [youtrack.User(e, self) for e in xml.documentElement.childNodes if
-                    e.nodeType == Node.ELEMENT_NODE]
+                 e.nodeType == Node.ELEMENT_NODE]
         return users
 
     def deleteUser(self, login):
@@ -543,7 +559,7 @@ class Connection(object):
         xml = minidom.parseString(content)
         return [youtrack.Link(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
-    def executeCommand(self, issueId, command, comment=None, group=None, run_as = None):
+    def executeCommand(self, issueId, command, comment=None, group=None, run_as=None):
         params = {'command': command}
 
         if comment is not None:

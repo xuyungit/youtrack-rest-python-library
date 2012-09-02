@@ -14,41 +14,60 @@ mantis.CF_TYPES = {
     9 : "enum[1]"     # Radio
 }
 
-# maps mantis priorities with yt priorities
-PRIORITY = {
-    "none"      : "Minor",
-    "low"       : "Minor",
-    "normal"    : "Normal",
-    "high"      : "Major",
-    "urgent"    : "Critical",
-    "immediate" : "Show-stopper"
+
+PRIORITY_VALUES = {
+    10 : "none",
+    20 : "low",
+    30 : "normal",
+    40 : "high",
+    50 : "urgent",
+    60 : "immediate"
 }
-# maps the int value from mantis db with its human readable representation
-TYPE = {
-    "Feature"   :   "Feature",
-    "Trivial"   :   "Bug",
-    "Text"      :   "Bug",
-    "Tweak"     :   "Bug",
-    "Minor"     :   "Bug",
-    "Major"     :   "Bug",
-    "Crash"     :   "Bug",
-    "Block"     :   "Bug"
+
+SEVERITY_VALUES = {
+    10 : "Feature",
+    20 : "Trivial",
+    30 : "Text",
+    40 : "Tweak",
+    50 : "Minor",
+    60 : "Major",
+    70 : "Crash",
+    80 : "Block",
+    90 : "Super Blocker"
 }
-# maps the int value from mantis db with its human readable representation
-STATUS = {
-    "confirmed" : "Verified"
+
+REPRODUCIBILITY_VALUES = {
+    10  : "Always",
+    30  : "Sometimes",
+    50  : "Random",
+    70  : "Have not tried",
+    90  : "Unable to reproduce",
+    100 : "N/A"
 }
-# maps the int value from mantis db with its human readable representation
-RESOLUTION = {
-    "open" : "Open",
-    "fixed" : "Fixed",
-    "reopened" : "Reopened",
-    "unable to reproduce" : "Can't Reproduce",
-    "not fixable" : "Won't fix",
-    "duplicate" : "Duplicate",
-    "no change required" : "Obsolete",
-    "suspended" : "Incomplete",
-    "won't fix" : "Won't fix"
+
+STATUS_VALUES = {
+    10 : "new",
+    20 : "feedback",
+    30 : "acknowledged",
+    40 : "confirmed",
+    50 : "assigned",
+    60 : "resolved",
+    70 : "closed",
+    75 : "some_status_3",
+    80 : "some_status_1",
+    90 : "some_status_2"
+}
+
+RESOLUTION_VALUES = {
+    10 : "open",
+    20 : "fixed",
+    30 : "reopened",
+    40 : "unable to reproduce",
+    50 : "not fixable",
+    60 : "duplicate",
+    70 : "no change required",
+    80 : "suspended",
+    90 : "won't fix"
 }
 
 #maps mantis link types with yt link types
@@ -59,32 +78,39 @@ mantis.LINK_TYPES = {
 }
 
 mantis.FIELD_NAMES = {
-    u"severity"         :   [u"Severity", u"Type"],
-    u"handler"          :   [u"Assignee"],
-    u"status"           :   [u"State"],
-    u"resolution"       :   [u"State"],
-    u"category"         :   [u"Subsystem"],
-    u"version"          :   [u"Affected versions"],
-    u"fixed_in_version" :   [u"Fix versions"], # DO NOT remove Fix versions form this list, if needed you can add one more field
-                                                # but DO NOT delete Fix versions
-    u"build"            :   [u"Fixed in build"],
-    u"os_build"         :   [u"OS version"],
-    u"subproject"       :   [u"Subproject"],
-    u"os"               :   [u"OS"],
-    u"due_date"         :   [u"Due date"],
-    u"target_version"   :   [u"Target version"] # it's better to import this fields with version type
+    u"severity"         :   u"Severity",
+    u"handler_id"       :   u"Assignee",
+    u"status"           :   u"State",
+    u"resolution"       :   u"Resolution",
+    u"category_id"      :   u"Subsystem",
+    u"version"          :   u"Affected versions",
+    u"fixed_in_version" :   u"Fix versions",
+    u"build"            :   u"Fixed in build",
+    u"os_build"         :   u"OS version",
+    u"subproject"       :   u"Subproject",
+    u"os"               :   u"OS",
+    u"due_date"         :   u"Mantis Due date",
+    u"target_version"   :   u"Target version", # it's better to import this fields with version type
+    u"priority"         :   u"Priority",
+    u"platform"         :   u"Platform",
+    u"last_updated"     :   u"updated",
+    u"date_submitted"   :   u"created",
+    u"reporter_id"      :   u"reporterName",
+    u"id"               :   u"numberInProject"
 }
 
 mantis.FIELD_VALUES = {
-    u"State"     :   dict(RESOLUTION.items() + STATUS.items()),
-    u"Priority"  :   PRIORITY,
-    u"Type"      :   TYPE
+    u"State"            : STATUS_VALUES,
+    u"Reproducibility"  : REPRODUCIBILITY_VALUES,
+    u"Priority"         : PRIORITY_VALUES,
+    u"Severity"         : SEVERITY_VALUES,
+    u"Resolution"       : RESOLUTION_VALUES
 }
 
 mantis.FIELD_TYPES = {
     u"Priority"             :   "enum[1]",
-    u"Type"                 :   "enum[1]",
     u"State"                :   "state[1]",
+    u"Resolution"           :   "state[1]",
     u"Fix versions"         :   "version[*]",
     u"Affected versions"    :   "version[*]",
     u"Assignee"             :   "user[1]",
@@ -96,14 +122,10 @@ mantis.FIELD_TYPES = {
     u"OS"                   :   "string",
     u"OS version"           :   "string",
     u"Reproducibility"      :   "enum[1]",
-    u"Due date"             :   "date",
-    u"Target version"       :   "version[1]"
+    u"Mantis Due date"      :   "date",
+    u"Target version"       :   "version[1]",
 }
 
-
-# if this parameter is True custom field "Subproject" will be created,
-# else all information about subproject will be lost
-mantis.CREATE_CF_FOR_SUBPROJECT = True
 # charset of your mantis database
-mantis.CHARSET = "cp866"
+mantis.CHARSET = "utf8"
   

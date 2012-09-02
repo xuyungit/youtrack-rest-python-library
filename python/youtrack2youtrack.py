@@ -235,8 +235,9 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                         a.authorLogin = target_login
                         try:
                             target.createAttachmentFromAttachment(issue.id, a)
-                        except:
+                        except BaseException, e:
                             print("Cant import attachment [ %s ]" % a.name)
+                            print repr(e)
 
             except:
                 print('Cant process issues from ' + str(start) + ' to ' + str(start + max))

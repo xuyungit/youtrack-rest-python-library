@@ -212,15 +212,6 @@ def process_versions(versions, project_id, target):
                 new_version.archived = False
             target.addValueToBundle(bundle, new_version)
 
-#
-#def process_milestones(milestones, project_id, target):
-#    cf, field_type = create_project_field(project_id, target, "milestone")
-#    if hasattr(cf, "bundle"):
-#        bundle = cf.bundle
-#        for m in milestones:
-#            target.addValueToBundle(bundle, milestone)
-#
-
 def get_number_in_project_field_name():
     for key, value in bugzilla.FIELD_NAMES.items():
         if value == "numberInProject":
