@@ -261,14 +261,17 @@ def import_attachments(issue_attachments, issue_id, target):
         content = StringIO(attachment.content)
         author = to_yt_user(attachment.author)
         target.importUsers([author])
-        target.importAttachment(
-            issue_id,
-            attachment.filename,
-            content,
-            author.login,
-            attachment.file_type,
-            None,
-            attachment.date_added)
+        try:
+            target.importAttachment(
+                issue_id,
+                attachment.filename,
+                content,
+                author.login,
+                attachment.file_type,
+                None,
+                attachment.date_added)
+        except YouTrackException:
+            print "Failed to import attachment"
 
 
 def is_prefix_of_any_other_tag(tag, other_tags):
