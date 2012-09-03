@@ -259,14 +259,17 @@ def import_attachments(issue_attachments, issue_id, target):
     for attachment in issue_attachments:
         print "Processing issue attachment [ %s ]" % str(attachment.id)
         content = StringIO(attachment.content)
-        author = to_yt_user(attachment.author)
-        target.importUsers([author])
+        author_login = "guest"
+        if attachment.author is not None:
+            author = to_yt_user(attachment.author)
+            target.importUsers([author])
+            author_login = author.login
         try:
             target.importAttachment(
                 issue_id,
                 attachment.filename,
                 content,
-                author.login,
+                author_login,
                 attachment.file_type,
                 None,
                 attachment.date_added)
