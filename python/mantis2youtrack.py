@@ -413,9 +413,9 @@ def mantis2youtrack(target_url, target_login, target_pass, mantis_db_name, manti
 
                 # import attachments
                 for issue in mantis_issues:
-#                    issue_attachments = client.get_attachments(issue['id'])
-#                    issue_id = "%s-%s" % (project_id, issue['id'])
-#                    import_attachments(issue_attachments, issue_id, target)
+                    issue_attachments = client.get_attachments(issue['id'])
+                    issue_id = "%s-%s" % (project_id, issue['id'])
+                    import_attachments(issue_attachments, issue_id, target)
                     issue_tags |= set(client.get_issue_tags_by_id(issue['id']))
 
         print "Importing issues to project [ %s ] finished" % project_id
