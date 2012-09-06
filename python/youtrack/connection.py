@@ -150,8 +150,8 @@ class Connection(object):
             except youtrack.YouTrackException:
                 params['created'] = str(calendar.timegm(datetime.now().timetuple()) * 1000)
 
-        r = urllib2.Request(self.baseUrl + url_prefix + issueId + "/attachment?" +
-                            urllib.urlencode(params),
+        url = self.baseUrl + url_prefix + issueId + "/attachment?" + urllib.urlencode(params)
+        r = urllib2.Request(url,
             headers=headers, data=post_data)
         #r.set_proxy('localhost:8888', 'http')
         try:
@@ -215,7 +215,7 @@ class Connection(object):
         for u in users:
             xml += '  <user ' + "".join(k + '=' + quoteattr(u[k]) + ' ' for k in u) + '/>\n'
         xml += '</list>'
-        print xml
+        print xml.encode('utf-8')
         #TODO: convert response xml into python objects
         return self._reqXml('PUT', '/import/users', xml.encode('utf-8'), 400).toxml()
 
