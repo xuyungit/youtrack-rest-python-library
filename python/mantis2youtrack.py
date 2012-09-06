@@ -1,3 +1,4 @@
+import urllib2
 from youtrack.connection import Connection
 from mantis.mantisClient import MantisClient
 from youtrack import *
@@ -275,6 +276,8 @@ def import_attachments(issue_attachments, issue_id, target):
                 attachment.date_added)
         except YouTrackException:
             print "Failed to import attachment"
+        except urllib2.HTTPError, e:
+            print 'Failed to import attachment [%s] for issue [%s]. Exception: [%s]' % (attachment.filename, issue_id, str(e))
 
 
 def is_prefix_of_any_other_tag(tag, other_tags):
