@@ -1,3 +1,4 @@
+import base64
 import json
 import httplib2
 from jira import JiraException
@@ -7,7 +8,8 @@ class JiraClient(object):
     def __init__(self, url, login, password):
         self._url = (url[:-1] if (url[-1] == '/') else url) + "/rest"
         self._headers = {}
-        self._http = httplib2.Http(timeout=10)
+        self._http = httplib2.Http(timeout=10, disable_ssl_certificate_validation=True)
+#        self._http.add_credentials(login, password)
         self._login(login, password)
 
     def get_issue_link_types(self):
@@ -27,12 +29,16 @@ class JiraClient(object):
         return issues
 
     def get_issue(self, issue_id):
-        response, content = self._get(self._rest_url() + "/issue/" + issue_id)
-        if response.status == 200 :
-            return content
-        else:
+        issue_url = self._rest_url() + "/issue/" + issue_id
+        issue_response, issue_content = self._get(issue_url)
+        meta_response, meta_content = self._get(issue_url + "/editmeta")
+        if issue_response.status != 200 or meta_response.status != 200:
             print "Can't get issue " + issue_id
             return None
+        else:
+            return issue_content, meta_content
+
+
 
     def _rest_url(self):
         return self._url + "/api/latest"
@@ -52,5 +58,7 @@ class JiraClient(object):
         return response, json.loads(content)
 
     def _login(self, login, password):
-        response, content = self._post(self._url + "/auth/1/session", {"username": login, "password": password})
-        self._headers['JSESSIONID'] = content['session']['value']
+#        response, content = self._post(self._url + "/auth/1/session", {"username": login, "password": password})
+#        self._headers['JSESSIONID'] = content['session']['value']
+        auth = base64.encodestring(login + ':' + password)
+        self._headers['Authorization'] = 'Basic ' + auth

@@ -15,20 +15,20 @@ def main():
     source_url, source_login, source_password, target_url, target_login, target_password, project_id = sys.argv[1:]
     jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id)
 
-#    print("Usage: jira2youtrack.py source_url source_login source_password "
-#          " target_url target_login target_password project_id")
 
-
-
-def create_yt_issue_from_jira_issue(target, issue, project_id):
+def create_yt_issue_from_jira_issue(target, issue_data, project_id):
     yt_issue = Issue()
     yt_issue['comments'] = []
+    issue, meta = issue_data
+    fields_meta = meta[u'fields']
     yt_issue.numberInProject = issue['key'][(issue['key'].find('-') + 1):]
-    for field in issue['fields'].values():
-        field_type = get_yt_field_type(field[u'type'])
-        field_name = get_yt_field_name(field[u'name'])
+    for field_name, value in issue['fields'].items():
+        field_type = None
+        if field_name in fields_meta:
+            field_type = get_yt_field_type(fields_meta[field_name][u'schema'][u'type'])
+        field_name = get_yt_field_name(field_name)
         if field_name == 'comment':
-            for comment in field['value']:
+            for comment in value[u'comments']:
                 yt_comment = Comment()
                 yt_comment.text = comment['body']
                 comment_author_name = "guest"
@@ -42,17 +42,15 @@ def create_yt_issue_from_jira_issue(target, issue, project_id):
                 yt_issue['comments'].append(yt_comment)
 
         elif (field_name is not None) and (field_type is not None):
-            if 'value' in field:
-                value = field['value']
-                if len(value):
-                    if isinstance(value, list):
-                        yt_issue[field_name] = []
-                        for v in value:
-                            create_value(target, v, field_name, field_type, project_id)
-                            yt_issue[field_name].append(get_value_presentation(field_type, v))
-                    else:
-                        create_value(target, value, field_name, field_type, project_id)
-                        yt_issue[field_name] = get_value_presentation(field_type, value)
+            if value is not None and len(value):
+                if isinstance(value, list):
+                    yt_issue[field_name] = []
+                    for v in value:
+                        create_value(target, v, field_name, field_type, project_id)
+                        yt_issue[field_name].append(get_value_presentation(field_type, v))
+                else:
+                    create_value(target, value, field_name, field_type, project_id)
+                    yt_issue[field_name] = get_value_presentation(field_type, value)
     return yt_issue
 
 
@@ -196,13 +194,16 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
     source = JiraClient(source_url, source_login, source_password)
     target = Connection(target_url, target_login, target_password)
 
-    target.createProjectDetailed(project_id, project_id, "", target_login)
+    try:
+        target.createProjectDetailed(project_id, project_id, "", target_login)
+    except YouTrackException:
+        pass
 
     issues_count = 10
 
     for i in range(0, issues_count):
         try:
-            jira_issues = source.get_issues(project_id, i * 10, (i + 1) * 10)
+            jira_issues = source.get_issues(project_id, i * 2, (i + 1) * 2)
             target.importIssues(project_id, project_id + " assignees",
                 [create_yt_issue_from_jira_issue(target, issue, project_id) for issue in
                  jira_issues])
