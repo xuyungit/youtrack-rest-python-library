@@ -29,14 +29,12 @@ class JiraClient(object):
         return issues
 
     def get_issue(self, issue_id):
-        issue_url = self._rest_url() + "/issue/" + issue_id
-        issue_response, issue_content = self._get(issue_url)
-        meta_response, meta_content = self._get(issue_url + "/editmeta")
-        if issue_response.status != 200 or meta_response.status != 200:
+        response, content = self._get(self._rest_url() + "/issue/" + issue_id)
+        if response.status == 200 :
+            return content
+        else:
             print "Can't get issue " + issue_id
             return None
-        else:
-            return issue_content, meta_content
 
 
 

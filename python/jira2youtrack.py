@@ -6,6 +6,7 @@ import urllib2
 import jira
 from jira.client import JiraClient
 from youtrack import Issue, YouTrackException, Comment, Link
+import youtrack
 from youtrack.connection import Connection
 from youtrack.importHelper import create_bundle_safe
 
@@ -16,19 +17,17 @@ def main():
     jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id)
 
 
-def create_yt_issue_from_jira_issue(target, issue_data, project_id):
+def create_yt_issue_from_jira_issue(target, issue, project_id):
     yt_issue = Issue()
     yt_issue['comments'] = []
-    issue, meta = issue_data
-    fields_meta = meta[u'fields']
     yt_issue.numberInProject = issue['key'][(issue['key'].find('-') + 1):]
-    for field_name, value in issue['fields'].items():
-        field_type = None
-        if field_name in fields_meta:
-            field_type = get_yt_field_type(fields_meta[field_name][u'schema'][u'type'])
-        field_name = get_yt_field_name(field_name)
+    for field, value in issue['fields'].items():
+        if value is None:
+            continue
+        field_name = get_yt_field_name(field)
+        field_type = get_yt_field_type(field_name)
         if field_name == 'comment':
-            for comment in value[u'comments']:
+            for comment in value['comments']:
                 yt_comment = Comment()
                 yt_comment.text = comment['body']
                 comment_author_name = "guest"
@@ -42,20 +41,24 @@ def create_yt_issue_from_jira_issue(target, issue_data, project_id):
                 yt_issue['comments'].append(yt_comment)
 
         elif (field_name is not None) and (field_type is not None):
-            if value is not None and len(value):
-                if isinstance(value, list):
-                    yt_issue[field_name] = []
-                    for v in value:
-                        create_value(target, v, field_name, field_type, project_id)
-                        yt_issue[field_name].append(get_value_presentation(field_type, v))
-                else:
+            if isinstance(value, list) and len(value):
+                yt_issue[field_name] = []
+                for v in value:
+                    create_value(target, v, field_name, field_type, project_id)
+                    yt_issue[field_name].append(get_value_presentation(field_type, v))
+            else:
+                if isinstance(value, int):
+                    value = str(value)
+                if len(value):
                     create_value(target, value, field_name, field_type, project_id)
                     yt_issue[field_name] = get_value_presentation(field_type, value)
+        else:
+            print field_name
     return yt_issue
 
 
 def process_labels(target, issue):
-    tags = issue['fields']['labels']['value']
+    tags = issue['fields']['labels']
     for tag in tags:
     #        tag = tag.replace(' ', '_')
     #        tag = tag.replace('-', '_')
@@ -74,44 +77,48 @@ def get_yt_field_name(jira_name):
     return jira_name
 
 
-def get_yt_field_type(jira_type):
-    if jira_type in jira.FIELD_TYPES:
-        return jira.FIELD_TYPES[jira_type]
-    return None
+def get_yt_field_type(yt_name):
+    result = jira.FIELD_TYPES.get(yt_name)
+    if result is None:
+        result = youtrack.EXISTING_FIELD_TYPES.get(yt_name)
+    return result
 
 
 def process_links(target, issue, yt_links):
-    links = issue['fields']['links']['value'] + issue['fields']['sub-tasks']['value']
-    for link in links:
-        is_directed = 'direction' in link
-        target_issue = issue['key']
-        source_issue = link['issueKey']
+    for sub_task in issue['fields']['subtasks']:
+        parent = issue[u'key']
+        child = sub_task[u'key']
+        link = Link()
+        link.typeName = u'subtask'
+        link.source = parent
+        link.target = child
+        yt_links.append(link)
 
-        try:
-            if int(target_issue[6:]) > int(source_issue[6:]):
-                continue
-        except:
+    links = issue['fields'][u'issuelinks']
+    for link in links:
+        if u'inwardIssue' in link:
+            source_issue = issue[u'key']
+            target_issue = link[u'inwardIssue'][u'key']
+        elif u'outwardIssue' in link:
+            source_issue = issue[u'key']
+            target_issue = link[u'outwardIssue'][u'key']
+        else:
             continue
 
+        type = link[u'type']
+        type_name = type[u'name']
+        inward = type[u'inward']
+        outward = type[u'outward']
         try:
-            link_description = link['type']['description'] if 'description' in link['type'] else link['type']['name']
-            if is_directed:
-                target.createIssueLinkTypeDetailed(link['type']['name'], link_description, link_description, False)
+            if inward == outward:
+                target.createIssueLinkTypeDetailed(type_name, outward, inward, False)
             else:
-                outward = 'is ' + link['type']['name']
-                inward = link_description
-                if link['type']['direction'] == u'OUTBOUND':
-                    c = outward
-                    outward = inward
-                    inward = outward
-                    c = source_issue
-                    source_issue = target_issue
-                    target_issue = c
-                target.createIssueLinkTypeDetailed(link['type']['name'], outward, inward, True)
+                target.createIssueLinkTypeDetailed(type_name, outward, inward, True)
         except YouTrackException:
             pass
+
         yt_link = Link()
-        yt_link.typeName = link['type']['name']
+        yt_link.typeName = type_name
         yt_link.source = source_issue
         yt_link.target = target_issue
         yt_links.append(yt_link)
@@ -153,13 +160,18 @@ def create_value(target, value, field_name, field_type, project_id):
 
 
 def to_unix_date(time_string):
-    time = time_string[:time_string.rfind('.')].replace('T', ' ')
-    time_zone = time_string[-5:]
-    tz_diff = 1
-    if time_zone[0] == '-':
-        tz_diff = -1
-    tz_diff *= (int(time_zone[1:3]) * 60 + int(time_zone[3:5]))
-    dt = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
+    if len(time_string) == 10:
+        #just date
+        dt = datetime.datetime.strptime(time_string, '%Y-%m-%d')
+        tz_diff = 0
+    else:
+        time = time_string[:time_string.rfind('.')].replace('T', ' ')
+        time_zone = time_string[-5:]
+        tz_diff = 1
+        if time_zone[0] == '-':
+            tz_diff = -1
+        tz_diff *= (int(time_zone[1:3]) * 60 + int(time_zone[3:5]))
+        dt = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
     return str((calendar.timegm(dt.timetuple()) + tz_diff) * 1000)
 
 
@@ -177,7 +189,7 @@ def get_value_presentation(field_type, value):
 
 
 def process_attachments(source, target, issue):
-    for attach in issue['fields']['attachment']['value']:
+    for attach in issue['fields']['attachment']:
         attachment = JiraAttachment(attach, source)
         if 'author' in attach:
             create_user(target, attach['author'])
@@ -199,22 +211,22 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
     except YouTrackException:
         pass
 
-    issues_count = 10
+    issues_count = 50
+
+    #    for i in range(0, issues_count):
+    #        try:
+    #            jira_issues = source.get_issues(project_id, i * 10, (i + 1) * 10)
+    #            target.importIssues(project_id, project_id + " assignees",
+    #                [create_yt_issue_from_jira_issue(target, issue, project_id) for issue in
+    #                 jira_issues])
+    #            for issue in jira_issues:
+    #                process_labels(target, issue)
+    #                process_attachments(source, target, issue)
+    #        except YouTrackException, e:
+    #            print(str(e))
 
     for i in range(0, issues_count):
-        try:
-            jira_issues = source.get_issues(project_id, i * 2, (i + 1) * 2)
-            target.importIssues(project_id, project_id + " assignees",
-                [create_yt_issue_from_jira_issue(target, issue, project_id) for issue in
-                 jira_issues])
-            for issue in jira_issues:
-                process_labels(target, issue)
-                process_attachments(source, target, issue)
-        except BaseException, e:
-            print(str(e))
-
-    for i in range(0, issues_count):
-        jira_issues = source.get_issues(project_id, i * 50, (i + 1) * 50)
+        jira_issues = source.get_issues(project_id, i * 10, (i + 1) * 10)
         links = []
         for issue in jira_issues:
             process_links(target, issue, links)
