@@ -14,7 +14,8 @@ jt_fields = []
 
 def main():
     source_url, source_login, source_password, target_url, target_login, target_password, project_id, issues_count = sys.argv[1:]
-    jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id, int(issues_count))
+    jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id,
+        int(issues_count))
 
 
 def create_yt_issue_from_jira_issue(target, issue, project_id):
@@ -126,7 +127,7 @@ def process_links(target, issue, yt_links):
 
 def create_user(target, value):
     try:
-        target.createUserDetailed(value['name'].replace(' ', '_'), value['displayName'], 'fare_email', 'fake_jabber')
+        target.createUserDetailed(value['name'].replace(' ', '_'), value['displayName'], value[u'name'], 'fake_jabber')
     except YouTrackException, e:
         print(str(e))
 
@@ -196,7 +197,8 @@ def process_attachments(source, target, issue):
         target.createAttachmentFromAttachment(issue['key'], attachment)
 
 
-def jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id, issues_count):
+def jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id,
+                  issues_count):
     print("source_url      : " + source_url)
     print("source_login    : " + source_login)
     print("target_url      : " + target_url)
@@ -213,17 +215,17 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
     except YouTrackException:
         pass
 
-    #    for i in range(0, issues_count):
-    #        try:
-    #            jira_issues = source.get_issues(project_id, i * 10, (i + 1) * 10)
-    #            target.importIssues(project_id, project_id + " assignees",
-    #                [create_yt_issue_from_jira_issue(target, issue, project_id) for issue in
-    #                 jira_issues])
-    #            for issue in jira_issues:
-    #                process_labels(target, issue)
-    #                process_attachments(source, target, issue)
-    #        except YouTrackException, e:
-    #            print(str(e))
+    for i in range(0, issues_count):
+        try:
+            jira_issues = source.get_issues(project_id, i * 10, (i + 1) * 10)
+            target.importIssues(project_id, project_id + " assignees",
+                [create_yt_issue_from_jira_issue(target, issue, project_id) for issue in
+                 jira_issues])
+            for issue in jira_issues:
+                process_labels(target, issue)
+                process_attachments(source, target, issue)
+        except YouTrackException, e:
+            print(str(e))
 
     for i in range(0, issues_count):
         jira_issues = source.get_issues(project_id, i * 10, (i + 1) * 10)
