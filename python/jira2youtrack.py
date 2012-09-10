@@ -13,8 +13,8 @@ from youtrack.importHelper import create_bundle_safe
 jt_fields = []
 
 def main():
-    source_url, source_login, source_password, target_url, target_login, target_password, project_id = sys.argv[1:]
-    jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id)
+    source_url, source_login, source_password, target_url, target_login, target_password, project_id, issues_count = sys.argv[1:]
+    jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id, int(issues_count))
 
 
 def create_yt_issue_from_jira_issue(target, issue, project_id):
@@ -196,12 +196,14 @@ def process_attachments(source, target, issue):
         target.createAttachmentFromAttachment(issue['key'], attachment)
 
 
-def jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id):
+def jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id, issues_count):
     print("source_url      : " + source_url)
     print("source_login    : " + source_login)
     print("target_url      : " + target_url)
     print("target_login    : " + target_login)
     print("project_id      : " + project_id)
+
+    issues_count = issues_count / 10 + 1
 
     source = JiraClient(source_url, source_login, source_password)
     target = Connection(target_url, target_login, target_password)
@@ -210,8 +212,6 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
         target.createProjectDetailed(project_id, project_id, "", target_login)
     except YouTrackException:
         pass
-
-    issues_count = 50
 
     #    for i in range(0, issues_count):
     #        try:
