@@ -215,9 +215,9 @@ class Connection(object):
         for u in users:
             xml += '  <user ' + "".join(k + '=' + quoteattr(u[k]) + ' ' for k in u) + '/>\n'
         xml += '</list>'
-        print xml.encode('utf-8')
+        print xml
         #TODO: convert response xml into python objects
-        return self._reqXml('PUT', '/import/users', xml.encode('utf-8'), 400).toxml()
+        return self._reqXml('PUT', '/import/users', xml, 400).toxml()
 
     def importIssuesXml(self, projectId, assigneeGroup, xml):
         return self._reqXml('PUT', '/import/' + urllib.quote(projectId) + '/issues?' +
@@ -685,7 +685,7 @@ class Connection(object):
     def getBundle(self, field_type, name):
         field_type = self.get_field_type(field_type)
         response = self._get('/admin/customfield/%s/%s' % (self.bundle_paths[field_type],
-                                                           urllib.quote(name.encode('utf-8'))))
+                                                           urllib.quote(name.encode('utf-8'), safe="")))
         return self.bundle_types[field_type](response, self)
 
     def renameBundle(self, bundle, new_name):

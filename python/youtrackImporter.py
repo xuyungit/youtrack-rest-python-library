@@ -5,13 +5,13 @@ from youtrack.importHelper import create_custom_field
 
 __author__ = 'user'
 
-name = u'name'
-type = u'type'
-policy = u'bundle_policy'
-auto_attached = u'auto_attached'
+NAME = u'name'
+TYPE = u'type'
+POLICY = u'bundle_policy'
+AUTO_ATTACHED = u'auto_attached'
+NUMBER_IN_PROJECT = u'numberInProject'
 
 class YouTrackImporter(object):
-
     def __init__(self, source, target, import_config):
         self._source = source
         self._target = target
@@ -33,17 +33,19 @@ class YouTrackImporter(object):
     def _create_auto_attached_fields(self):
         predefined_fields = self._import_config.get_predefined_fields()
         for field in predefined_fields:
-            self._create_field(field[name], field[type], field.get(policy))
+            self._create_field(field[NAME], field[TYPE], field.get(POLICY))
 
     def _create_field(self, field_name, field_type, attach_bundle_policy, auto_attached=True):
+        if field_name in youtrack.EXISTING_FIELDS:
+            return
         create_custom_field(self._target, field_type, field_name, auto_attached, bundle_policy=attach_bundle_policy)
 
     def _create_custom_fields(self, project_ids):
-        custom_fields = self._source._get_custom_fields(project_ids)
+        custom_fields = self._get_custom_field_names(project_ids)
         for field in custom_fields:
             yt_field = self._import_config.get_field_info(field)
-            if yt_field is not None:
-                self._create_field(yt_field[name], yt_field[type], yt_field.get(policy), yt_field[auto_attached])
+            if (yt_field is not None) and (yt_field[TYPE] is not None):
+                self._create_field(yt_field[NAME], yt_field[TYPE], yt_field.get(POLICY), yt_field[AUTO_ATTACHED])
 
     def _create_project(self, project_id, project_name, project_lead_login):
         try:
@@ -52,12 +54,12 @@ class YouTrackImporter(object):
             self._target.createProjectDetailed(project_id, project_name, u'', project_lead_login)
 
     def _attach_fields_to_project(self, project_id):
-        project_fields = self._get_custom_fields(project_id)
+        project_fields = self._get_custom_field_names([project_id])
         for field in project_fields:
             yt_field = self._import_config.get_field_info(field)
             if  (yt_field is not None) and (not yt_field[u'auto_attached']):
                 # this means, that field was not attached to project yet
-                field_name = yt_field[name]
+                field_name = yt_field[NAME]
                 try:
                     self._target.createProjectCustomFieldDetailed(project_id, field_name, u'No ' + field_name)
                 except YouTrackException:
@@ -67,7 +69,10 @@ class YouTrackImporter(object):
         after = 0
         limit = 100
         while True:
-            issues = self.get_issues([project_id], after, limit)
+            issues = self._get_issues([project_id], after, limit)
+            if not len(issues):
+                break
+            after += len(issues)
             self._target.importIssues(project_id, project_id + u' assignees',
                 [self._to_yt_issue(issue, project_id) for issue in issues])
             for issue in issues:
@@ -81,10 +86,11 @@ class YouTrackImporter(object):
         limit = 200
         existing_tags = set([])
         while True:
-            issue_tags = self.get_issue_tags(project_ids, after, limit).values()
+            issue_tags = self._get_issue_tags(project_ids, after, limit).values()
             if not len(issue_tags):
                 break
             existing_tags |= set(issue_tags)
+        self._do_import_tags(project_ids, existing_tags)
 
     def _is_prefix_of_any_other_tag(self, tag, other_tags):
         for t in other_tags:
@@ -93,7 +99,7 @@ class YouTrackImporter(object):
         return False
 
 
-    def _import_tags(self, source, target, project_ids, collected_tags):
+    def _do_import_tags(self, project_ids, collected_tags):
         tags_to_import_now = set([])
         tags_to_import_after = set([])
         for tag in collected_tags:
@@ -105,7 +111,7 @@ class YouTrackImporter(object):
         for project_id in project_ids:
             after = 0
             while True:
-                issue_tags = self.get_issue_tags(project_id, after, max)
+                issue_tags = self._get_issue_tags(project_id, after, max)
                 if not len(issue_tags):
                     break
                 for (issue_id, tags) in issue_tags.items():
@@ -113,12 +119,12 @@ class YouTrackImporter(object):
                     for tag in tags:
                         if tag in tags_to_import_now:
                             try:
-                                target.executeCommand(yt_issue_id, u'tag ' + tag)
+                                self._target.executeCommand(yt_issue_id, u'tag ' + tag)
                             except YouTrackException:
                                 print(u'Failed to import tag for issue [%s]' % yt_issue_id)
                 after += max
         if len(tags_to_import_after):
-            self._import_tags(source, target, project_ids, tags_to_import_after)
+            self._do_import_tags(project_ids, tags_to_import_after)
 
     def _import_issue_links(self, project_ids):
         after = 0
@@ -127,7 +133,7 @@ class YouTrackImporter(object):
             links = self._get_issue_links(project_ids, after, limit)
             if not len(links):
                 break
-            self._target.importLinks([self.to_yt_link(lnk) for lnk in links])
+            self._target.importLinks([self._to_yt_link(lnk) for lnk in links])
             after += limit
 
     def _import_issue_link_types(self):
@@ -138,19 +144,11 @@ class YouTrackImporter(object):
             except:
                 print(u'Issue link type [%s] already exist' % yt_type.name)
 
-    def _get_link_types(self):
-        raise NotImplementedError
-
-    def _get_custom_fields(self, project_id):
-        raise NotImplementedError
-
-    def _get_issue_links(self, project_ids, after, limit):
-        raise NotImplementedError
-
     def _to_yt_issue(self, issue, project_id):
         result = Issue()
-        result.comments = [self.to_yt_comment(comment) for comment in self._get_comments(issue)]
-        for (key, value) in issue:
+        result.comments = [self._to_yt_comment(comment) for comment in self._get_comments(issue)]
+        result.numberInProject = self._get_issue_id(issue)
+        for (key, value) in issue.items():
             # we do not need fields with empty values
             if value is None:
                 continue
@@ -159,14 +157,14 @@ class YouTrackImporter(object):
 
             #get yt field name and field type
             field_name = self._get_field_name(key, project_id)
-            if field_name is None:
+            if field_name is None or field_name == NUMBER_IN_PROJECT:
                 continue
             field_type = self._get_field_type(field_name)
             if (field_type is None) and (field_name not in youtrack.EXISTING_FIELDS):
                 continue
 
-            value = self._import_config.get_field_value(field_name, value)
-            if isinstance(value.list):
+            value = self._import_config.get_field_value(field_name, field_type, value)
+            if isinstance(value, list):
                 for v in value:
                     self._add_value_to_field(project_id, field_name, field_type, v)
             else:
@@ -178,14 +176,15 @@ class YouTrackImporter(object):
                 else:
                     value = value.login
             if not isinstance(value, list):
-                value = unicode(value)
+                value = str(value)
             result[field_name] = value
         return result
 
     def _get_field_name(self, field_name, project_id):
         field = self._import_config.get_field_info(field_name)
-        if field is not None:
-            field_name = field[name]
+        if field is None:
+            return None
+        field_name = field[NAME]
         if field_name in youtrack.EXISTING_FIELDS:
             return field_name
         try:
@@ -218,7 +217,7 @@ class YouTrackImporter(object):
 
     def _add_value_to_fields_in_project(self, project_id):
         for field in self._get_fields_with_values(project_id):
-            field_name = self._get_field_name(field[name], project_id)
+            field_name = self._get_field_name(field[NAME], project_id)
             pcf = self._target.getProjectCustomField(project_id, field_name)
             if hasattr(pcf, u'bundle'):
                 field_type = pcf.type[0:-3]
@@ -230,32 +229,44 @@ class YouTrackImporter(object):
     def _get_fields_with_values(self, project_id):
         return []
 
-    def to_yt_comment(self, comment):
+    def _to_yt_comment(self, comment):
         raise NotImplementedError
 
-    def to_yt_link(self, link):
+    def _to_yt_link(self, link):
         raise NotImplementedError
 
     def _get_issue_id(self, issue):
-        raise NotImplementedError
+        return issue[self._import_config.get_key_for_field_name(NUMBER_IN_PROJECT)]
 
     def _get_attachments(self, param):
-        raise NotImplementedError
+        return []
 
-    def get_issues(self, project_ids, after, limit):
+    def _get_issues(self, project_ids, after, limit):
         raise NotImplementedError
 
     def _import_attachments(self, issue_id, issue_attachments):
-        raise NotImplementedError
+        if not len(issue_attachments):
+            return
+        else:
+            raise NotImplementedError
 
     def _get_comments(self, issue):
         raise NotImplementedError
 
-    def get_issue_tags(self, project_ids, after, limit):
+    def _get_issue_tags(self, project_ids, after, limit):
         raise NotImplementedError
 
-class YouTrackImportConfig(object):
+    def _get_link_types(self):
+        raise NotImplementedError
 
+    def _get_custom_field_names(self, project_ids):
+        raise NotImplementedError
+
+    def _get_issue_links(self, project_ids, after, limit):
+        return []
+
+
+class YouTrackImportConfig(object):
     def __init__(self, name_mapping, type_mapping, value_mapping=None, link_type_mapping=None):
         self._name_mapping = name_mapping
         self._type_mapping = type_mapping
@@ -266,12 +277,12 @@ class YouTrackImportConfig(object):
         if value is None:
             return None
         values_map = self._value_mapping[field_name] if field_name in self._value_mapping else {}
+        if field_type.startswith(u'user'):
+            return self._to_yt_user(value)
         if isinstance(value, str) or isinstance(value, unicode):
             return values_map[value] if value in values_map else value.replace("/", " ")
         if isinstance(value, int):
             return values_map[value] if value in values_map else str(value)
-        if field_type.startswith(u'user'):
-            return self._to_yt_user(value)
         if isinstance(value, list):
             return [self.get_field_value(field_name, field_type, v) for v in value]
 
@@ -282,14 +293,14 @@ class YouTrackImportConfig(object):
         return 0
 
     def get_field_info(self, field_name):
-        result = {auto_attached : self._get_default_auto_attached()}
-        result[name] = field_name if field_name not in self._name_mapping else self._name_mapping[field_name]
-        result[type] = None
-        if result[name] in self._type_mapping:
-            result[type] = self._type_mapping[result[name]]
-        elif result[name] in youtrack.EXISTING_FIELD_TYPES:
-            result[type] = youtrack.EXISTING_FIELD_TYPES[result[name]]
-        result[policy] = self._get_default_bundle_policy()
+        result = {AUTO_ATTACHED: self._get_default_auto_attached()}
+        result[NAME] = field_name if field_name not in self._name_mapping else self._name_mapping[field_name]
+        result[TYPE] = None
+        if result[NAME] in self._type_mapping:
+            result[TYPE] = self._type_mapping[result[NAME]]
+        elif result[NAME] in youtrack.EXISTING_FIELD_TYPES:
+            result[TYPE] = youtrack.EXISTING_FIELD_TYPES[result[NAME]]
+        result[POLICY] = self._get_default_bundle_policy()
         return result
 
     def get_predefined_fields(self):
@@ -301,5 +312,10 @@ class YouTrackImportConfig(object):
     def _to_yt_user(self, value):
         raise NotImplementedError
 
+    def get_key_for_field_name(self, field_name):
+        for (key, value) in self._name_mapping.items():
+            if value == field_name:
+                return key
+        return field_name
 
 

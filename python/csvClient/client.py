@@ -38,5 +38,10 @@ class Client(object) :
     def get_header(self) :
         return self._header
 
+    def reset(self):
+        self._issues_reader = self._get_reader()
+        self._read_header()
+
+
 
         

@@ -1,13 +1,13 @@
 import csvClient
 
 csvClient.FIELD_NAMES = {
-    "Project"       :   "project",
+    "Project"       :   "project_name",
     "Summary"       :   "summary",
     "Reporter"      :   "reporterName",
     "Created"       :   "created",
     "Updated"       :   "updated",
     "Description"   :   "description",
-    "Issue Id"       :   "numberInProject"
+    "Issue Id"      :   "numberInProject"
 }
 csvClient.FIELD_TYPES = {
     "Fix versions"      :   "version[*]",
