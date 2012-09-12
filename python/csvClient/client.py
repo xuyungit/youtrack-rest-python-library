@@ -23,7 +23,6 @@ class Client(object) :
                 batch_size -= 1
             else:
                 break
-
             issue = {"comments": []}
             for i in range(len(row)):
                 value = row[i].strip()

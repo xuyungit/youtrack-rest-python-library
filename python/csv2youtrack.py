@@ -82,7 +82,8 @@ class CsvYouTrackImporter(YouTrackImporter):
         key = self._import_config.get_key_for_field_name(u'Tags')
         result = {}
         for issue in self._get_issues(project_ids, after, limit):
-            result[self._get_issue_id(issue)] = issue[key]
+            if key in issue:
+                result[self._get_issue_id(issue)] = issue[key]
         return result
 
     def _get_link_types(self):

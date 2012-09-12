@@ -31,7 +31,6 @@ class Connection(object):
 
     def _req(self, method, url, body=None, ignoreStatus=None):
         headers = self.headers
-
         if method == 'PUT' or method == 'POST':
             headers = headers.copy()
             headers['Content-Type'] = 'application/xml; charset=UTF-8'
@@ -217,7 +216,9 @@ class Connection(object):
         xml += '</list>'
         print xml
         #TODO: convert response xml into python objects
-        return self._reqXml('PUT', '/import/users', xml.encode('utf-8'), 400).toxml()
+        if isinstance(xml, unicode):
+            xml = xml.encode('utf-8')
+        return self._reqXml('PUT', '/import/users', xml, 400).toxml()
 
     def importIssuesXml(self, projectId, assigneeGroup, xml):
         return self._reqXml('PUT', '/import/' + urllib.quote(projectId) + '/issues?' +
@@ -560,6 +561,8 @@ class Connection(object):
         return [youtrack.Link(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
     def executeCommand(self, issueId, command, comment=None, group=None, run_as=None):
+        if isinstance(command, unicode):
+            command = command.encode('utf-8')
         params = {'command': command}
 
         if comment is not None:
