@@ -87,7 +87,6 @@ mantis.FIELD_NAMES = {
     u"fixed_in_version" :   u"Fix versions",
     u"build"            :   u"Fixed in build",
     u"os_build"         :   u"OS version",
-    u"subproject"       :   u"Subproject",
     u"os"               :   u"OS",
     u"due_date"         :   u"Mantis Due date",
     u"target_version"   :   u"Target version", # it's better to import this fields with version type
@@ -96,7 +95,8 @@ mantis.FIELD_NAMES = {
     u"last_updated"     :   u"updated",
     u"date_submitted"   :   u"created",
     u"reporter_id"      :   u"reporterName",
-    u"id"               :   u"numberInProject"
+    u"id"               :   u"numberInProject",
+    u'project_id'       :   u'Subproject'
 }
 
 mantis.FIELD_VALUES = {

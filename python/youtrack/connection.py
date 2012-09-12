@@ -217,7 +217,7 @@ class Connection(object):
         xml += '</list>'
         print xml
         #TODO: convert response xml into python objects
-        return self._reqXml('PUT', '/import/users', xml, 400).toxml()
+        return self._reqXml('PUT', '/import/users', xml.encode('utf-8'), 400).toxml()
 
     def importIssuesXml(self, projectId, assigneeGroup, xml):
         return self._reqXml('PUT', '/import/' + urllib.quote(projectId) + '/issues?' +

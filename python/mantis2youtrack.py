@@ -353,6 +353,7 @@ def mantis2youtrack(target_url, target_login, target_pass, mantis_db_name, manti
     create_yt_custom_field(target, u"target_version")
     create_yt_custom_field(target, u"status")
     create_yt_custom_field(target, u"resolution")
+    create_yt_custom_field(target, u'project_id')
 
     # adding some custom fields that are predefined in mantis
     project_ids = []
