@@ -257,7 +257,7 @@ class YouTrackImporter(object):
         raise NotImplementedError
 
     def _get_link_types(self):
-        raise NotImplementedError
+        return []
 
     def _get_custom_field_names(self, project_ids):
         raise NotImplementedError

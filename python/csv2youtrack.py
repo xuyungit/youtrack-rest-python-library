@@ -86,9 +86,6 @@ class CsvYouTrackImporter(YouTrackImporter):
                 result[self._get_issue_id(issue)] = issue[key]
         return result
 
-    def _get_link_types(self):
-        return []
-
     def _get_custom_field_names(self, project_ids):
         project_name_key = self._import_config.get_key_for_field_name(self._import_config.get_project_name_key())
         project_id_key = self._import_config.get_key_for_field_name(self._import_config.get_project_id_key())
