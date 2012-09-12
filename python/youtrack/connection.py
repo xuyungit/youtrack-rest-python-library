@@ -635,6 +635,8 @@ class Connection(object):
     def createProjectCustomFieldDetailed(self, projectId, customFieldName, emptyFieldText, params=None):
         if not len(emptyFieldText.strip()):
             emptyFieldText = u"No " + customFieldName
+        if isinstance(customFieldName, unicode):
+            customFieldName = customFieldName.encode('utf-8')
         _params = {'emptyFieldText': emptyFieldText}
         if params is not None:
             _params.update(params)
@@ -642,7 +644,7 @@ class Connection(object):
             if isinstance(_params[key], unicode):
                 _params[key] = _params[key].encode('utf-8')
         return self._put(
-            '/admin/project/' + projectId + '/customfield/' + urllib.quote(customFieldName.encode('utf-8')) + '?' +
+            '/admin/project/' + projectId + '/customfield/' + urllib.quote(customFieldName) + '?' +
             urllib.urlencode(_params))
 
     def deleteProjectCustomField(self, project_id, pcf_name):
