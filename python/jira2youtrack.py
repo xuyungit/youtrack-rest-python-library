@@ -232,8 +232,7 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
         links = []
         for issue in jira_issues:
             process_links(target, issue, links)
-        print(target.importLinks(links))
-
+        target.importLinks(links)
 
 class JiraAttachment(object):
     def __init__(self, attach, source):
