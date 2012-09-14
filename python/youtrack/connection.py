@@ -366,6 +366,10 @@ class Connection(object):
         return [youtrack.Group(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
     def setUserGroup(self, user_name, group_name):
+        if isinstance(user_name, unicode):
+            user_name = user_name.encode('utf-8')
+        if isinstance(group_name, unicode):
+            group_name = group_name.encode('utf-8')
         encoded_user_name = urllib.quote(user_name.encode('utf-8'))
         encoded_group_name = urllib.quote(group_name.encode('utf-8'))
         response, content = self._req('POST', '/admin/user/%s/group/%s' % (encoded_user_name, encoded_group_name),

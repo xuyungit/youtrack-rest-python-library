@@ -253,6 +253,7 @@ class Attachment(YouTrackObject):
 class User(YouTrackObject):
     def __init__(self, xml=None, youtrack=None):
         YouTrackObject.__init__(self, xml, youtrack)
+        self.getGroups = lambda : []
 
     def __hash__(self):
         return hash(self.login)
