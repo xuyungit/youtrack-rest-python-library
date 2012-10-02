@@ -117,12 +117,36 @@ class Connection(object):
         return f
 
     def createAttachmentFromAttachment(self, issueId, a):
-        content = a.getContent()
-        return self.importAttachment(issueId, a.name, content, a.authorLogin,
-            contentLength=int(content.headers.dict['content-length']),
-            contentType=content.info().type,
-            created=a.created if hasattr(a, 'created') else None,
-            group=a.group if hasattr(a, 'group') else '')
+        try:
+            content = a.getContent()
+            return self.importAttachment(issueId, a.name, content, a.authorLogin,
+                contentLength=int(content.headers.dict['content-length']),
+                contentType=content.info().type,
+                created=a.created if hasattr(a, 'created') else None,
+                group=a.group if hasattr(a, 'group') else '')
+        except urllib2.HTTPError, e:
+            print "Can't create attachment"
+            try:
+                err_content = e.read()
+                issue_id = issueId
+                attach_name = a.name
+                attach_url = a._url
+                if isinstance(err_content, unicode):
+                    err_content = err_content.encode('utf-8')
+                if isinstance(issue_id, unicode):
+                    issue_id = issue_id.encode('utf-8')
+                if isinstance(attach_name, unicode):
+                    attach_name = attach_name.encode('utf-8')
+                if isinstance(attach_url, unicode):
+                    attach_url = attach_url.encode('utf-8')
+                print "HTTP CODE: ", e.code
+                print "REASON: ", err_content
+                print "IssueId: ", issue_id
+                print "Attachment filename: ", attach_name
+                print "Attachment URL: ", attach_url
+            except Exception:
+                pass
+            return None
 
     def _process_attachmnets(self, authorLogin, content, contentLength, contentType, created, group, issueId, name,
                              url_prefix='/issue/'):
@@ -327,7 +351,7 @@ class Connection(object):
                     print "Reason : "
                     print item.toxml()
                     print "Request was :"
-                    if isinstance(issue_records, unicode):
+                    if isinstance(issue_records[id], unicode):
                         print issue_records[id].encode('utf-8')
                     else:
                         print issue_records[id]

@@ -13,9 +13,18 @@ from youtrack.importHelper import create_bundle_safe
 jt_fields = []
 
 def main():
-    source_url, source_login, source_password, target_url, target_login, target_password, project_id, issues_count = sys.argv[1:]
+    source_url, source_login, source_password, target_url, target_login, target_password, project_id, issues_count = sys.argv[1:9]
+    issues_count = int(issues_count)
+    skip_count = int(sys.argv[9]) if len(sys.argv) > 9 else 0
+    if issues_count < 1:
+        raise ValueError('Issues count cannot be negative or zero!')
+    if skip_count < 0:
+        raise ValueError('Skip count cannot be negative!')
+    if skip_count >= issues_count:
+        raise ValueError('Skip count should be less then issues count!')
+
     jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id,
-        int(issues_count))
+        issues_count, skip_count)
 
 
 def create_yt_issue_from_jira_issue(target, issue, project_id):
@@ -198,14 +207,19 @@ def process_attachments(source, target, issue):
 
 
 def jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id,
-                  issues_count):
+                  issues_count, skip_count):
     print("source_url      : " + source_url)
     print("source_login    : " + source_login)
     print("target_url      : " + target_url)
     print("target_login    : " + target_login)
     print("project_id      : " + project_id)
+    print("issues_count    : ", issues_count)
+    print("skip_count      : ", skip_count)
 
-    issues_count = issues_count / 10 + 1
+    first_chunk = skip_count / 10
+    last_chunk = issues_count / 10
+    if issues_count % 10:
+        last_chunk += 1
 
     source = JiraClient(source_url, source_login, source_password)
     target = Connection(target_url, target_login, target_password)
@@ -215,9 +229,13 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
     except YouTrackException:
         pass
 
-    for i in range(0, issues_count):
+    for i in range(first_chunk, last_chunk):
+        start = i * 10
+        end = (i + 1) * 10
+        if start < skip_count: start = skip_count
+        if end > issues_count: end = issues_count
         try:
-            jira_issues = source.get_issues(project_id, i * 10, (i + 1) * 10)
+            jira_issues = source.get_issues(project_id, start, end)
             target.importIssues(project_id, project_id + " assignees",
                 [create_yt_issue_from_jira_issue(target, issue, project_id) for issue in
                  jira_issues])
@@ -227,8 +245,12 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
         except YouTrackException, e:
             print(str(e))
 
-    for i in range(0, issues_count):
-        jira_issues = source.get_issues(project_id, i * 10, (i + 1) * 10)
+    for i in range(first_chunk, last_chunk):
+        start = i * 10
+        end = (i + 1) * 10
+        if start < skip_count: start = skip_count
+        if end > issues_count: end = issues_count
+        jira_issues = source.get_issues(project_id, start, end)
         links = []
         for issue in jira_issues:
             process_links(target, issue, links)
