@@ -156,7 +156,7 @@ class YouTrackImporter(object):
             if (field_type is None) and (field_name not in youtrack.EXISTING_FIELDS):
                 continue
 
-            value = self._import_config.get_field_value(field_name, field_type, value)
+            value = self.get_field_value(field_name, field_type, value)
             if isinstance(value, list):
                 for v in value:
                     self._add_value_to_field(project_id, field_name, field_type, v)
