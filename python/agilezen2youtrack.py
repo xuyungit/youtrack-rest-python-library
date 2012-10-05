@@ -1,17 +1,14 @@
 import calendar
 from xml.dom import minidom
 import datetime
+import sys
 from agilezen.client import Client
 from youtrack import YouTrackException, Link, User, Group, StateField, Issue, EnumBundle, StateBundle, Comment
 from youtrack.connection import Connection
 
 def main():
-    source_url = "https://agilezen.com"
-    source_token = "some secret token"
-    target_url = "http://localhost:8081"
-    target_login = "root"
-    target_password = "root"
-    project_names_to_import = [u'project_name']
+    source_url, source_token, target_url, target_login, target_password = sys.argv[1:6]
+    project_names_to_import = sys.argv[6:]
     agilezen2youtrack(source_url, source_token, target_url, target_login, target_password, project_names_to_import)
 
 
