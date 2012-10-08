@@ -7,9 +7,12 @@ from youtrack import YouTrackException, Link, User, Group, StateField, Issue, En
 from youtrack.connection import Connection
 
 def main():
-    source_url, source_token, target_url, target_login, target_password = sys.argv[1:6]
-    project_names_to_import = sys.argv[6:]
-    agilezen2youtrack(source_url, source_token, target_url, target_login, target_password, project_names_to_import)
+    if sys.argv[0] == u'useApiKey':
+        source_url, source_token, target_url, target_api_key = sys.argv[1:5]
+        agilezen2youtrack(source_url, source_token, target_url, api_key=target_api_key, project_names_to_import=sys.argv[5:])
+    else:
+        source_url, source_token, target_url, target_login, target_password = sys.argv[1:6]
+        agilezen2youtrack(source_url, source_token, target_url, target_login, target_password, sys.argv[6:])
 
 
 def to_yt_user(user):
@@ -258,9 +261,7 @@ def import_project(source, target, project):
 #
 
 
-def agilezen2youtrack(source_url, source_token, target_url, target_login, target_password, project_names_to_import):
-    source = Client(source_url, source_token)
-    target = Connection(target_url, target_login, target_password)
+def doImport(project_names_to_import, source, target):
     last_page = False
     current_page = 1
     try:
@@ -302,6 +303,17 @@ def agilezen2youtrack(source_url, source_token, target_url, target_login, target
             if project[u'name'] in project_names_to_import:
                 import_project(source, target, project)
         current_page += 1
+
+
+def agilezen2youtrack(source_url, source_token, target_url, target_login=None, target_password=None, project_names_to_import=None, api_key=None):
+    source = Client(source_url, source_token)
+    target = None
+    if api_key is None:
+        target = Connection(target_url, target_login, target_password)
+    else:
+        target = Connection(target_url, api_key=api_key)
+    doImport(project_names_to_import, source, target)
+
 
 
 if __name__ == '__main__':

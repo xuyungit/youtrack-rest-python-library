@@ -11,11 +11,14 @@ import json
 import urllib2_file
 
 class Connection(object):
-    def __init__(self, url, login, password, proxy_info=None):
+    def __init__(self, url, login=None, password=None, proxy_info=None, api_key=None):
         self.http = httplib2.Http() if proxy_info is None else httplib2.Http(proxy_info=proxy_info)
         self.url = url
         self.baseUrl = url + "/rest"
-        self._login(login, password)
+        if api_key is None:
+            self._login(login, password)
+        else:
+            self.headers['X-YouTrack-ApiKey'] = api_key
 
     def _login(self, login, password):
         response, content = self.http.request(
