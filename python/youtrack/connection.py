@@ -18,7 +18,7 @@ class Connection(object):
         if api_key is None:
             self._login(login, password)
         else:
-            self.headers['X-YouTrack-ApiKey'] = api_key
+            self.headers = {'X-YouTrack-ApiKey' : api_key}
 
     def _login(self, login, password):
         response, content = self.http.request(

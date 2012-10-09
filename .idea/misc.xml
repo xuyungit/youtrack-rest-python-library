@@ -37,6 +37,9 @@
   <component name="CopyrightManager" default="">
     <module2copyright />
   </component>
+  <component name="EntryPointsManager">
+    <entry_points version="2.0" />
+  </component>
   <component name="IdProvider" IDEtalkID="00F28664891EDCE9D82AD48DA73F131A" />
   <component name="JavadocGenerationManager">
     <option name="OUTPUT_DIRECTORY" />
