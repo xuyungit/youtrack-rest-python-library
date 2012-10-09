@@ -12,7 +12,7 @@ import urllib2_file
 
 class Connection(object):
     def __init__(self, url, login=None, password=None, proxy_info=None, api_key=None):
-        self.http = httplib2.Http() if proxy_info is None else httplib2.Http(proxy_info=proxy_info)
+        self.http = httplib2.Http(disable_ssl_certificate_validation=True) if proxy_info is None else httplib2.Http(proxy_info=proxy_info, disable_ssl_certificate_validation=True)
         self.url = url
         self.baseUrl = url + "/rest"
         if api_key is None:
