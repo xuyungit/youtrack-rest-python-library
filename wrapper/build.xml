@@ -22,7 +22,7 @@
 
     <target name="package.jython" depends="clean">
         <copy file="jython/jython-standalone-2.5.3.jar" tofile="${jython.patched}"/>
-        <copy file="jython/jython-standalone-2.5.3-sources.jar" tofile="" description="${jython.src.patched}"/>
+        <copy file="jython/jython-standalone-2.5.3-sources.jar" tofile="${jython.src.patched}"/>
         <antcall target="package.jython.libs">
             <param name="jython" value="${jython.patched}"/>
         </antcall>
