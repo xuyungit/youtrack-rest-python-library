@@ -7,7 +7,7 @@ class Client:
         self._url = (url[:-1] if (url[-1] == '/') else url)
         self._headers = {"X-Zen-ApiKey": api_key,
                          "Accept"      : "application/json;charset=utf-8"}
-        self._http = httplib2.Http()
+        self._http = httplib2.Http(disable_ssl_certificate_validation=True)
 
     def get_projects(self, page=1, page_size=100):
         return self._get_content("/projects?" + self._get_page_query_params(page, page_size))
