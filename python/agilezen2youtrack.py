@@ -41,7 +41,8 @@ def import_role(target, project_id, role):
     try:
         target.createGroup(group)
     except YouTrackException, e:
-        print unicode(e)
+        msg = repr(e)
+        print msg.encode('utf-8') if isinstance(msg, unicode) else msg
     for member in members:
         try:
             target.setUserGroup(member[u'userName'], group.name)
