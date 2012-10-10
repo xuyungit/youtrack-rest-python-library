@@ -93,7 +93,7 @@ def to_yt_issue(target, project_id, story):
     status = story[u'status']
     add_value_to_custom_field(target, project_id, 'Status', status)
     parent['Status'] = status
-    parent['Phase'] = story[u'phase'][u'name']
+    parent['State'] = story[u'phase'][u'name']
     creator = story[u'creator']
     import_user(target, creator)
     if u'owner' in story:
