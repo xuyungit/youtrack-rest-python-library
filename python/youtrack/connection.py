@@ -2,6 +2,7 @@ import calendar
 from datetime import datetime
 import httplib2
 from xml.dom import minidom
+import sys
 import youtrack
 from xml.dom import Node
 import urllib2
@@ -241,7 +242,6 @@ class Connection(object):
         for u in users:
             xml += '  <user ' + "".join(k + '=' + quoteattr(u[k]) + ' ' for k in u) + '/>\n'
         xml += '</list>'
-        print xml
         #TODO: convert response xml into python objects
         if isinstance(xml, unicode):
             xml = xml.encode('utf-8')
@@ -264,7 +264,6 @@ class Connection(object):
             xml += '  <link ' + "".join(attr + '=' + quoteattr(l[attr]) +
                                         ' ' for attr in l if attr not in ['typeInward', 'typeOutward']) + '/>\n'
         xml += '</list>'
-        print xml
         #TODO: convert response xml into python objects
         res = self._reqXml('PUT', '/import/links', xml, 400)
         return res.toxml() if hasattr(res, "toxml") else res
@@ -335,13 +334,13 @@ class Connection(object):
         try:
             response = result.toxml().encode('utf-8')
         except:
-            print "can't parse response"
-            print "request was"
-            print xml
+            sys.stderr.write("can't parse response")
+            sys.stderr.write("request was")
+            sys.stderr.write(xml)
             return response
         item_elements = minidom.parseString(response).getElementsByTagName("item")
         if len(item_elements) != len(issues):
-            print response
+            sys.stderr.write(response)
         else:
             for item in item_elements:
                 id = item.attributes["id"].value
@@ -349,15 +348,15 @@ class Connection(object):
                 if imported == "true":
                     print "Issue [ %s-%s ] imported successfully" % (projectId, id)
                 else:
-                    print ""
-                    print "Failed to import issue [ %s-%s ]." % (projectId, id)
-                    print "Reason : "
-                    print item.toxml()
-                    print "Request was :"
+                    sys.stderr.write("")
+                    sys.stderr.write("Failed to import issue [ %s-%s ]." % (projectId, id))
+                    sys.stderr.write("Reason : ")
+                    sys.stderr.write(item.toxml())
+                    sys.stderr.write("Request was :")
                     if isinstance(issue_records[id], unicode):
-                        print issue_records[id].encode('utf-8')
+                        sys.stderr.write( issue_records[id].encode('utf-8'))
                     else:
-                        print issue_records[id]
+                        sys.stderr.write(issue_records[id])
                 print ""
         return response
 

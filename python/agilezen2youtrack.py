@@ -9,7 +9,8 @@ from youtrack.connection import Connection
 def main():
     if sys.argv[0] == u'useApiKey':
         source_url, source_token, target_url, target_api_key = sys.argv[1:5]
-        agilezen2youtrack(source_url, source_token, target_url, api_key=target_api_key, project_names_to_import=sys.argv[5:])
+        agilezen2youtrack(source_url, source_token, target_url, api_key=target_api_key,
+            project_names_to_import=sys.argv[5:])
     else:
         source_url, source_token, target_url, target_login, target_password = sys.argv[1:6]
         agilezen2youtrack(source_url, source_token, target_url, target_login, target_password, sys.argv[6:])
@@ -41,14 +42,12 @@ def import_role(target, project_id, role):
     try:
         target.createGroup(group)
     except YouTrackException, e:
-        msg = repr(e)
-        print msg.encode('utf-8') if isinstance(msg, unicode) else msg
+        log_message(e)
     for member in members:
         try:
             target.setUserGroup(member[u'userName'], group.name)
         except YouTrackException, e:
-            print str(e)
-
+            log_error(e)
 
 def import_phase(target, project_id, phase):
     bundle = target.getBundle("state[1]", target.getProjectCustomField(project_id, "State").bundle)
@@ -58,8 +57,7 @@ def import_phase(target, project_id, phase):
     try:
         target.addValueToBundle(bundle, value)
     except YouTrackException, e:
-        print unicode(e)
-
+        pass
 
 def add_value_to_custom_field(target, project_id, field_name, field_value):
     field_type = target.getCustomField(field_name).type
@@ -155,6 +153,7 @@ def is_prefix_of_any_other_tag(tag, other_tags):
             return True
     return False
 
+
 def import_tags(source, target, project_id, collected_tags):
     tags_to_import_now = set([])
     tags_to_import_then = set([])
@@ -221,8 +220,8 @@ def import_project(source, target, project):
             if story_id > max_story_id:
                 max_story_id = story_id
             stories_to_import.append(yt_issue)
-#            if len(source.get_attachments(project_id, str(story_id))[u'items']):
-#                print 'Attachments found!'
+            #            if len(source.get_attachments(project_id, str(story_id))[u'items']):
+            #                print 'Attachments found!'
             # here we just collect tags, not actually import them to find tags that are prefixes of other tags
             if u'tags' in story:
                 existing_tags |= set([t[u'name'] for t in story[u'tags']])
@@ -268,18 +267,18 @@ def doImport(project_names_to_import, source, target):
     try:
         target.createCustomFieldDetailed("State", "state[1]", False, True, True, {"attachBundlePolicy": "2"})
     except YouTrackException, e:
-        print str(e)
+        pass
     colors_bundle = EnumBundle()
     colors_bundle.name = "Colors"
     try:
         target.createBundle(colors_bundle)
     except YouTrackException, e:
-        print str(e)
+        log_message(e)
     try:
         target.createCustomFieldDetailed("Color", "enum[1]", False, True, True,
                 {"defaultBundle": colors_bundle.name, "attachBundlePolicy": "0"})
     except YouTrackException, e:
-        print str(e)
+        pass
     try:
         status_bundle = StateBundle()
         status_bundle.name = "Statuses"
@@ -287,15 +286,15 @@ def doImport(project_names_to_import, source, target):
         target.createCustomFieldDetailed("Status", "state[1]", False, True, True,
                 {"defaultBundle": status_bundle.name, "attachBundlePolicy": "0"})
     except YouTrackException, e:
-        print str(e)
+        pass
     try:
         target.createCustomFieldDetailed("Size", "integer", False, True, True)
     except YouTrackException, e:
-        print str(e)
+        pass
     try:
         target.createCustomFieldDetailed("Deadline", "date", False, True, True)
     except YouTrackException, e:
-        print str(e)
+        pass
     while not last_page:
         projects = source.get_projects(page=1, page_size=25)
         if current_page == projects[u'totalPages']:
@@ -306,7 +305,8 @@ def doImport(project_names_to_import, source, target):
         current_page += 1
 
 
-def agilezen2youtrack(source_url, source_token, target_url, target_login=None, target_password=None, project_names_to_import=None, api_key=None):
+def agilezen2youtrack(source_url, source_token, target_url, target_login=None, target_password=None,
+                      project_names_to_import=None, api_key=None):
     source = Client(source_url, source_token)
     target = None
     if api_key is None:
@@ -316,6 +316,13 @@ def agilezen2youtrack(source_url, source_token, target_url, target_login=None, t
     doImport(project_names_to_import, source, target)
 
 
+def log_error(e):
+    msg = repr(e)
+    sys.stderr.write(msg.encode('utf-8') if isinstance(msg, unicode) else msg)
+
+def log_message(e):
+    msg = repr(e)
+    print msg.encode('utf-8') if isinstance(msg, unicode) else msg
 
 if __name__ == '__main__':
     main()
