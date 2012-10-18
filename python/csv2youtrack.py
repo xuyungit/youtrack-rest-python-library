@@ -50,7 +50,7 @@ class CsvYouTrackImporter(YouTrackImporter):
             result = Comment()
             result.authorLogin = u'guest'
             result.text = comment
-            result.created = comment.created = str(int(time.time() * 1000))
+            result.created = str(int(time.time() * 1000))
             return result
 
     def get_field_value(self, field_name, field_type, value):
