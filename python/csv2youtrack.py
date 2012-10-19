@@ -48,7 +48,7 @@ class CsvYouTrackImporter(YouTrackImporter):
     def _to_yt_comment(self, comment):
         if isinstance(comment, str) or isinstance(comment, unicode):
             result = Comment()
-            result.authorLogin = u'guest'
+            result.author = u'guest'
             result.text = comment
             result.created = str(int(time.time() * 1000))
             return result
