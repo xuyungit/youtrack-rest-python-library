@@ -325,11 +325,17 @@ def agilezen2youtrack(source_url, source_token, target_url, target_login=None, t
 
 
 def log_error(e):
-    msg = repr(e)
+    if not (isinstance(e, unicode) or isinstance(e, str)):
+        msg = repr(e)
+    else:
+        msg = e
     sys.stderr.write(msg.encode('utf-8') if isinstance(msg, unicode) else msg)
 
 def log_message(e):
-    msg = repr(e)
+    if not (isinstance(e, unicode) or isinstance(e, str)):
+        msg = repr(e)
+    else:
+        msg = e
     print msg.encode('utf-8') if isinstance(msg, unicode) else msg
 
 def log_step(step):
