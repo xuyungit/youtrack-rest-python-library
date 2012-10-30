@@ -171,7 +171,7 @@ def import_tags(source, target, project_id, collected_tags):
                 for tag in [t[u'name'] for t in story[u'tags'] if t[u'name'] in tags_to_import_now]:
                     target.executeCommand("%s-%s" % (project_id, story[u'id']), "tag " + tag)
         current_page += 1
-        if current_page == stories[u'totalPages']:
+        if current_page > stories[u'totalPages']:
             last_page = True
     if len(tags_to_import_then):
         import_tags(source, target, project_id, tags_to_import_then)
