@@ -178,6 +178,8 @@ def import_tags(source, target, project_id, collected_tags):
 
 
 def import_project(source, target, project):
+    log_step("Import project " + project[u'name'])
+
     import_user(target, project[u'owner'])
     project_id = str(project[u'id'])
     try:
@@ -188,6 +190,7 @@ def import_project(source, target, project):
 
     last_page = False
     current_page = 1
+    log_step("Import project roles")
     while not last_page:
         roles = source.get_project_roles(project_id, current_page)
         if current_page == roles[u'totalPages']:
@@ -197,6 +200,7 @@ def import_project(source, target, project):
         current_page += 1
     last_page = False
     current_page = 1
+    log_step("Import project phases")
     while not last_page:
         phases = source.get_project_phases(project_id, current_page)
         if current_page == phases[u'totalPages']:
@@ -208,6 +212,7 @@ def import_project(source, target, project):
     current_page = 1
     max_story_id = 0
     existing_tags = set()
+    log_step("Import stories")
     while not last_page:
         stories = source.get_stories_for_project(project_id, current_page)
         if current_page == stories[u'totalPages']:
@@ -228,10 +233,12 @@ def import_project(source, target, project):
         target.importIssues(project_id, project_id + " assignees", stories_to_import)
         current_page += 1
 
+    log_step("Import tags")
     import_tags(source, target, project_id, existing_tags)
     #now iterate again through stories to import tasks
     last_page = False
     current_page = 1
+    log_step("Import tasks")
     while not last_page:
         stories = source.get_stories_for_project(project_id, current_page)
         if current_page == stories[u'totalPages']:
@@ -264,6 +271,7 @@ def import_project(source, target, project):
 def doImport(project_names_to_import, source, target):
     last_page = False
     current_page = 1
+    log_step("Creating custom fields")
     try:
         target.createCustomFieldDetailed("State", "state[1]", False, True, True, {"attachBundlePolicy": "2"})
     except YouTrackException, e:
@@ -323,6 +331,9 @@ def log_error(e):
 def log_message(e):
     msg = repr(e)
     print msg.encode('utf-8') if isinstance(msg, unicode) else msg
+
+def log_step(step):
+    log_message("Step: " + step)
 
 if __name__ == '__main__':
     main()
