@@ -24,7 +24,7 @@ def main():
         bz_product_names = sys.argv[9:]
     except:
         sys.exit()
-#    issues_filter = lambda issue: ("bug_status" in issue) and (issue["bug_status"] in ['UNCONFIRMED', 'NEW', 'ASSIGNED', 'REOPENED'])
+        #    issues_filter = lambda issue: ("bug_status" in issue) and (issue["bug_status"] in ['UNCONFIRMED', 'NEW', 'ASSIGNED', 'REOPENED'])
     bugzilla2youtrack(target_url, target_login, target_pass, bz_db, bz_host, bz_port, bz_login, bz_pass,
         bz_product_names, lambda issue: True)
 
@@ -198,7 +198,10 @@ def process_components(components, project_id, target):
                 if c.initial_owner is not None:
                     import_single_user(c.initial_owner, target)
                     new_component.owner = c.initial_owner.login
-            target.addValueToBundle(bundle, new_component)
+            try:
+                target.addValueToBundle(bundle, new_component)
+            except YouTrackException:
+                pass
 
 
 def process_versions(versions, project_id, target):
@@ -210,17 +213,23 @@ def process_versions(versions, project_id, target):
             if isinstance(new_version, VersionField):
                 new_version.released = True
                 new_version.archived = False
-            target.addValueToBundle(bundle, new_version)
+            try:
+                target.addValueToBundle(bundle, new_version)
+            except YouTrackException:
+                pass
+
 
 def get_number_in_project_field_name():
     for key, value in bugzilla.FIELD_NAMES.items():
         if value == "numberInProject":
             return key
 
+
 def get_yt_field_value_from_bz_field_value(yt_field_name, yt_field_type, bz_value):
     if isinstance(bz_value, str) or isinstance(bz_value, unicode):
         return bz_value.replace("/", "_")
-    if isinstance(bz_value, list) and len(bz_value) and (isinstance(bz_value[0], str) or isinstance(bz_value[0], unicode)):
+    if isinstance(bz_value, list) and len(bz_value) and (
+        isinstance(bz_value[0], str) or isinstance(bz_value[0], unicode)):
         return [v.replace("/", "_") for v in bz_value]
     return bz_value
 
@@ -296,12 +305,14 @@ def bugzilla2youtrack(target_url, target_login, target_pass, bz_db, bz_host, bz_
                 tags = issue["keywords"] | issue["flags"]
                 for t in tags:
                     print "Processing tag [ %s ]" % t.encode('utf8')
-                    target.executeCommand(str(product_id) + "-" + str(issue[get_number_in_project_field_name()]), "tag " + t.encode('utf8'))
+                    target.executeCommand(str(product_id) + "-" + str(issue[get_number_in_project_field_name()]),
+                        "tag " + t.encode('utf8'))
             for issue in batch:
                 for attach in issue["attachments"]:
                     print "Processing attachment [ %s ]" % (attach.name.encode('utf8'))
                     content = StringIO(attach.content)
-                    target.createAttachment(str(product_id) + "-" + str(issue[get_number_in_project_field_name()]), attach.name, content, attach.reporter
+                    target.createAttachment(str(product_id) + "-" + str(issue[get_number_in_project_field_name()]),
+                        attach.name, content, attach.reporter
                         , created=str(int(attach.created) * 1000))
         print "Importing issues to project [ %s ] finished" % product_id
 

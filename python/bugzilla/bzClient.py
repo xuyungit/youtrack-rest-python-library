@@ -2,11 +2,12 @@ import MySQLdb
 import MySQLdb.cursors
 from bugzilla import *
 import time
+import bugzilla
 
 class Client(object):
     def __init__(self, host, port, login, password, db_name="bugs"):
         self.sql_cnx = MySQLdb.connect(host=host, port=port, user=login, passwd=password,
-            db=db_name, cursorclass=MySQLdb.cursors.DictCursor, charset="cp866")
+            db=db_name, cursorclass=MySQLdb.cursors.DictCursor, charset=bugzilla.BZ_DB_CHARSET)
         self.db_host = "%s:%s/" % (host, str(port))
 
     def get_project_description(self, product_id):

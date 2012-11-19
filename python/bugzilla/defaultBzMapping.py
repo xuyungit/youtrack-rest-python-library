@@ -52,4 +52,4 @@ bugzilla.CF_TYPES = {
 
 # if we need to import empty comments
 bugzilla.ACCEPT_EMPTY_COMMENTS = False
-bugzilla.BZ_DB_CHARSET = 'cp866'
+bugzilla.BZ_DB_CHARSET = 'utf8'
