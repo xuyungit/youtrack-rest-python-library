@@ -293,11 +293,13 @@ def bugzilla2youtrack(target_url, target_login, target_pass, bz_db, bz_host, bz_
         print "Importing issues to project [ %s ]" % product_id
         max_count = 100
         count = 0
+        from_id = 0
         bz_issues_count = client.get_issues_count(product_id)
         while count < bz_issues_count:
-            batch = client.get_issues(product_id, count, max_count)
-            count += max_count
+            batch = client.get_issues(product_id, from_id, from_id + max_count)
             batch = [bz_issue for bz_issue in batch if (issues_filter(bz_issue))]
+            count += len(batch)
+            from_id += max_count
             target.importIssues(product_id, product_id + " assignees",
                 [to_yt_issue(bz_issue, product_id, target) for bz_issue in batch])
             # todo convert to good tags import
