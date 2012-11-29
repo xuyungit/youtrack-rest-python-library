@@ -23,7 +23,7 @@ class Connection(object):
 
     def _login(self, login, password):
         response, content = self.http.request(
-            self.baseUrl + "/user/login?login=" + login + "&password=" + password, 'POST',
+            self.baseUrl + "/user/login?login=" + urllib.quote_plus(login) + "&password=" + urllib.quote_plus(password), 'POST',
             headers={'Content-Length': '0'})
         if response.status != 200:
             raise youtrack.YouTrackException('/user/login', response, content)
