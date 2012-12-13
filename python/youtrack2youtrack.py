@@ -239,8 +239,9 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                             print("Cant import attachment [ %s ]" % a.name)
                             print repr(e)
 
-            except:
+            except Exception, e:
                 print('Cant process issues from ' + str(start) + ' to ' + str(start + max))
+                print e
 
             start += max
 

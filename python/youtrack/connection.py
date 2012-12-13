@@ -323,6 +323,9 @@ class Connection(object):
         if isinstance(xml, unicode):
             xml = xml.encode('utf-8')
 
+        if isinstance(assigneeGroup, unicode):
+            assigneeGroup = assigneeGroup.encode('utf-8')
+
         url = '/import/' + urllib.quote(projectId) + '/issues?' + urllib.urlencode({'assigneeGroup': assigneeGroup})
         if isinstance(url, unicode):
             url = url.encode('utf-8')
@@ -396,9 +399,7 @@ class Connection(object):
             user_name = user_name.encode('utf-8')
         if isinstance(group_name, unicode):
             group_name = group_name.encode('utf-8')
-        encoded_user_name = urllib.quote(user_name.encode('utf-8'))
-        encoded_group_name = urllib.quote(group_name.encode('utf-8'))
-        response, content = self._req('POST', '/admin/user/%s/group/%s' % (encoded_user_name, encoded_group_name),
+        response, content = self._req('POST', '/admin/user/%s/group/%s' % (urllib.quote(user_name), urllib.quote(group_name)),
             body='')
         return response
 
@@ -520,9 +521,15 @@ class Connection(object):
         return self.createProjectDetailed(project.id, project.name, project.description, project.lead)
 
     def createProjectDetailed(self, projectId, name, description, projectLeadLogin, startingNumber=1):
+        _name = name
+        _desc = description
+        if isinstance(_name, unicode):
+            _name = _name.encode('utf-8')
+        if isinstance(_desc, unicode):
+            _desc = _desc.encode('utf-8')
         return self._put('/admin/project/' + projectId + '?' +
-                         urllib.urlencode({'projectName': name,
-                                           'description': description + ' ',
+                         urllib.urlencode({'projectName': _name,
+                                           'description': _desc + ' ',
                                            'projectLeadLogin': projectLeadLogin,
                                            'lead': projectLeadLogin,
                                            'startingNumber': str(startingNumber)}))
@@ -751,7 +758,10 @@ class Connection(object):
                 params = dict()
                 for e in value:
                     if (e != "name") and (e != "element_name") and len(value[e]):
-                        params[e] = value[e]
+                        if isinstance(value[e], unicode):
+                            params[e] = value[e].encode('utf-8')
+                        else:
+                            params[e] = value[e]
                 if len(params):
                     request += urllib.urlencode(params)
         else:
