@@ -13,17 +13,19 @@ import urllib2_file
 
 class Connection(object):
     def __init__(self, url, login=None, password=None, proxy_info=None, api_key=None):
-        self.http = httplib2.Http(disable_ssl_certificate_validation=True) if proxy_info is None else httplib2.Http(proxy_info=proxy_info, disable_ssl_certificate_validation=True)
+        self.http = httplib2.Http(disable_ssl_certificate_validation=True) if proxy_info is None else httplib2.Http(
+            proxy_info=proxy_info, disable_ssl_certificate_validation=True)
         self.url = url
         self.baseUrl = url + "/rest"
         if api_key is None:
             self._login(login, password)
         else:
-            self.headers = {'X-YouTrack-ApiKey' : api_key}
+            self.headers = {'X-YouTrack-ApiKey': api_key}
 
     def _login(self, login, password):
         response, content = self.http.request(
-            self.baseUrl + "/user/login?login=" + urllib.quote_plus(login) + "&password=" + urllib.quote_plus(password), 'POST',
+            self.baseUrl + "/user/login?login=" + urllib.quote_plus(login) + "&password=" + urllib.quote_plus(password),
+            'POST',
             headers={'Content-Length': '0'})
         if response.status != 200:
             raise youtrack.YouTrackException('/user/login', response, content)
@@ -166,7 +168,7 @@ class Connection(object):
         # name without extension to workaround: http://youtrack.jetbrains.net/issue/JT-6110
         params = {#'name': os.path.splitext(name)[0],
                   'authorLogin': authorLogin,
-                  }
+        }
         if group is not None:
             params["group"] = group
         if created is not None:
@@ -357,7 +359,7 @@ class Connection(object):
                     sys.stderr.write(item.toxml())
                     sys.stderr.write("Request was :")
                     if isinstance(issue_records[id], unicode):
-                        sys.stderr.write( issue_records[id].encode('utf-8'))
+                        sys.stderr.write(issue_records[id].encode('utf-8'))
                     else:
                         sys.stderr.write(issue_records[id])
                 print ""
@@ -399,7 +401,8 @@ class Connection(object):
             user_name = user_name.encode('utf-8')
         if isinstance(group_name, unicode):
             group_name = group_name.encode('utf-8')
-        response, content = self._req('POST', '/admin/user/%s/group/%s' % (urllib.quote(user_name), urllib.quote(group_name)),
+        response, content = self._req('POST',
+            '/admin/user/%s/group/%s' % (urllib.quote(user_name), urllib.quote(group_name)),
             body='')
         return response
 

@@ -40,11 +40,14 @@ class YouTrackImporter(object):
         create_custom_field(self._target, field_type, field_name, auto_attached, bundle_policy=attach_bundle_policy)
 
     def _create_custom_fields(self, project_ids):
-        custom_fields = self._get_custom_field_names(project_ids)
-        for field in custom_fields:
-            yt_field = self._import_config.get_field_info(field)
+        custom_fields = self._get_custom_fields_for_projects(project_ids)
+        for yt_field in custom_fields:
             if (yt_field is not None) and (yt_field[TYPE] is not None):
                 self._create_field(yt_field[NAME], yt_field[TYPE], yt_field.get(POLICY), yt_field[AUTO_ATTACHED])
+
+    def _get_custom_fields_for_projects(self, project_ids):
+        raise NotImplementedError()
+
 
     def _create_project(self, project_id, project_name, project_lead_login):
         try:
@@ -53,10 +56,8 @@ class YouTrackImporter(object):
             self._target.createProjectDetailed(project_id, project_name, u'', project_lead_login)
 
     def _attach_fields_to_project(self, project_id):
-        project_fields = self._get_custom_field_names([project_id])
-        for field in project_fields:
-            yt_field = self._import_config.get_field_info(field)
-            if  (yt_field is not None) and (not yt_field[u'auto_attached']):
+        for yt_field in self._get_custom_fields_for_projects([project_id]):
+            if  not yt_field[u'auto_attached']:
                 # this means, that field was not attached to project yet
                 field_name = yt_field[NAME]
                 try:
@@ -137,47 +138,45 @@ class YouTrackImporter(object):
                 self._target.importLinks(links)
                 after += limit
 
+    def process_field(self, key, project_id, result, value):
+        # we do not need fields with empty values
+        if value is None:
+            return
+        if isinstance(value, list) and not len(value):
+            return
+
+        #get yt field name and field type
+        field_name = self._get_field_name(key, project_id)
+        if field_name is None or field_name == NUMBER_IN_PROJECT:
+            return
+        field_type = self._get_field_type(field_name)
+        if (field_type is None) and (field_name not in youtrack.EXISTING_FIELDS):
+            return
+        value = self.get_field_value(field_name, field_type, value)
+        if isinstance(value, list):
+            for v in value:
+                self._add_value_to_field(project_id, field_name, field_type, v)
+        else:
+            self._add_value_to_field(project_id, field_name, field_type, value)
+        if (field_type is not None) and field_type.startswith(u'user'):
+            if isinstance(value, list):
+                value = [v.login for v in value]
+            else:
+                value = value.login
+        if not isinstance(value, list):
+            value = str(value)
+        result[field_name] = value
+
     def _to_yt_issue(self, issue, project_id):
         result = Issue()
         result.comments = [self._to_yt_comment(comment) for comment in self._get_comments(issue)]
         result.numberInProject = self._get_issue_id(issue)
         for (key, value) in issue.items():
-            # we do not need fields with empty values
-            if value is None:
-                continue
-            if isinstance(value, list) and not len(value):
-                continue
-
-            #get yt field name and field type
-            field_name = self._get_field_name(key, project_id)
-            if field_name is None or field_name == NUMBER_IN_PROJECT:
-                continue
-            field_type = self._get_field_type(field_name)
-            if (field_type is None) and (field_name not in youtrack.EXISTING_FIELDS):
-                continue
-
-            value = self.get_field_value(field_name, field_type, value)
-            if isinstance(value, list):
-                for v in value:
-                    self._add_value_to_field(project_id, field_name, field_type, v)
-            else:
-                self._add_value_to_field(project_id, field_name, field_type, value)
-
-            if (field_type is not None) and field_type.startswith(u'user'):
-                if isinstance(value, list):
-                    value = [v.login for v in value]
-                else:
-                    value = value.login
-            if not isinstance(value, list):
-                value = str(value)
-            result[field_name] = value
+            self.process_field(key, project_id, result, value)
         return result
 
     def _get_field_name(self, field_name, project_id):
-        field = self._import_config.get_field_info(field_name)
-        if field is None:
-            return None
-        field_name = field[NAME]
+        field_name = self._import_config.get_field_name(field_name)
         if field_name in youtrack.EXISTING_FIELDS:
             return field_name
         try:
@@ -223,12 +222,17 @@ class YouTrackImporter(object):
         values_map = self._import_config.get_value_mapping(field_name)
         if field_type.startswith(u'user'):
             return self._to_yt_user(value)
+        if field_type.lower() == u"date":
+            return self.to_unix_date(value)
         if isinstance(value, str) or isinstance(value, unicode):
             return values_map[value] if value in values_map else value.replace("/", " ")
         if isinstance(value, int):
             return values_map[value] if value in values_map else str(value)
         if isinstance(value, list):
             return [self.get_field_value(field_name, field_type, v) for v in value]
+
+    def to_unix_date(self, date):
+        return date
 
     def _add_value_to_fields_in_project(self, project_id):
         for field in self._get_fields_with_values(project_id):
@@ -245,7 +249,7 @@ class YouTrackImporter(object):
                     self._target.addValueToBundle(bundle, value)
 
     def _get_issue_id(self, issue):
-        return issue[self._import_config.get_key_for_field_name(NUMBER_IN_PROJECT)]
+        return str(issue[self._import_config.get_key_for_field_name(NUMBER_IN_PROJECT)])
 
     #Following method should be implemented in inheritors:
 
@@ -276,9 +280,6 @@ class YouTrackImporter(object):
                 result[self._get_issue_id(issue)] = issue[key]
         return result
 
-    def _get_custom_field_names(self, project_ids):
-        raise NotImplementedError
-
     def _get_issue_links(self, project_id, after, limit):
         return []
 
@@ -299,16 +300,8 @@ class YouTrackImportConfig(object):
     def _get_default_bundle_policy(self):
         return 0
 
-    def get_field_info(self, field_name):
-        result = {AUTO_ATTACHED: self._get_default_auto_attached(),
-                  NAME: field_name if field_name not in self._name_mapping else self._name_mapping[field_name],
-                  TYPE: None}
-        if result[NAME] in self._type_mapping:
-            result[TYPE] = self._type_mapping[result[NAME]]
-        elif result[NAME] in youtrack.EXISTING_FIELD_TYPES:
-            result[TYPE] = youtrack.EXISTING_FIELD_TYPES[result[NAME]]
-        result[POLICY] = self._get_default_bundle_policy()
-        return result
+    def get_field_name(self, field_name):
+        return field_name if field_name not in self._name_mapping else self._name_mapping[field_name]
 
     def get_predefined_fields(self):
         return []

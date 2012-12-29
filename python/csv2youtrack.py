@@ -1,5 +1,5 @@
-import calendar
 import re
+import calendar
 import time
 import datetime
 import sys
@@ -111,6 +111,11 @@ class CsvYouTrackImporter(YouTrackImporter):
                 if project_id not in result:
                     result[project_id] = project_name
 
+    def _get_custom_fields_for_projects(self, project_ids):
+        result = [elem for elem in [self._import_config.get_field_info(field_name) for field_name in
+                                   self._get_custom_field_names(project_ids)] if elem is not None]
+        return result
+
 
 class CsvYouTrackImportConfig(YouTrackImportConfig):
     def __init__(self, name_mapping, type_mapping, value_mapping=None):
@@ -135,6 +140,17 @@ class CsvYouTrackImportConfig(YouTrackImportConfig):
         project_name = issue[project_name_key]
         project_id = re.sub(r'[^A-Za-z0-9]+', "", issue[project_id_key])
         return project_id, project_name
+
+    def get_field_info(self, field_name):
+        result = {AUTO_ATTACHED: self._get_default_auto_attached(),
+                  NAME: field_name if field_name not in self._name_mapping else self._name_mapping[field_name],
+                  TYPE: None}
+        if result[NAME] in self._type_mapping:
+            result[TYPE] = self._type_mapping[result[NAME]]
+        elif result[NAME] in youtrack.EXISTING_FIELD_TYPES:
+            result[TYPE] = youtrack.EXISTING_FIELD_TYPES[result[NAME]]
+        result[POLICY] = self._get_default_bundle_policy()
+        return result
 
 if __name__ == "__main__":
     main()
