@@ -240,9 +240,11 @@ class Connection(object):
         """
         if len(users) <= 0: return
 
+        known_attrs = ('login', 'fullName', 'email', 'jabber')
+
         xml = '<list>\n'
         for u in users:
-            xml += '  <user ' + "".join(k + '=' + quoteattr(u[k]) + ' ' for k in u) + '/>\n'
+            xml += '  <user ' + "".join(k + '=' + quoteattr(u[k]) + ' ' for k in u if k in known_attrs) + '/>\n'
         xml += '</list>'
         #TODO: convert response xml into python objects
         if isinstance(xml, unicode):
@@ -707,6 +709,27 @@ class Connection(object):
                          urllib.urlencode({'outwardName': outwardName,
                                            'inwardName': inwardName,
                                            'directed': directed}))
+
+    def getWorkItems(self, issue_id):
+        response, content = self._req('GET',
+            '/issue/%s/timetracking/workitem' % urllib.quote(issue_id))
+        xml = minidom.parseString(content)
+        return [youtrack.WorkItem(e, self) for e in xml.documentElement.childNodes if
+                e.nodeType == Node.ELEMENT_NODE]
+
+    def createWorkItem(self, issue_id, work_item):
+        xml =  '<workItem>'
+        xml += '<date>%s</date>' % work_item.date
+        xml += '<duration>%s</duration>' % work_item.duration
+        if work_item.description is not None:
+            xml += '<description>%s</description>' % escape(work_item.description)
+        xml += '<author login=%s></author>' % quoteattr(work_item.authorLogin)
+        xml += '</workItem>'
+        if isinstance(xml, unicode):
+            xml = xml.encode('utf-8')
+        self._reqXml('POST',
+            '/issue/%s/timetracking/workitem' % urllib.quote(issue_id), xml)
+       
 
     def getAllBundles(self, field_type):
         field_type = self.get_field_type(field_type)

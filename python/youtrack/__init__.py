@@ -338,6 +338,24 @@ class IssueLinkType(YouTrackObject):
         YouTrackObject.__init__(self, xml, youtrack)
 
 
+class WorkItem(YouTrackObject):
+    def __init__(self, xml=None, youtrack=None):
+        YouTrackObject.__init__(self, xml, youtrack)
+
+    def _update(self, xml):
+        if xml is None:
+            return
+        if isinstance(xml, Document):
+            xml = xml.documentElement
+
+        self.url = xml.getAttribute('url')
+        for e in xml.childNodes:
+            if e.tagName == 'author':
+                self.authorLogin = e.getAttribute('login')
+            else:
+                self[e.tagName] = self._text(e)
+    
+
 class CustomField(YouTrackObject):
     def __init__(self, xml=None, youtrack=None):
         YouTrackObject.__init__(self, xml, youtrack)
