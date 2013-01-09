@@ -19,8 +19,8 @@ def usage():
     basename = os.path.basename(sys.argv[0]) 
     print """
 Usage:
-    %s -a api_key r_url y_url y_user y_password [project_id ...]
-    %s r_url r_user r_pass y_url y_user y_password [project_id ...]
+    %s [-t] -a api_key r_url y_url y_user y_password [project_id ...]
+    %s [-t] r_url r_user r_pass y_url y_user y_password [project_id ...]
 
     r_url          Redmine URL
     r_user         Redmine user
@@ -32,29 +32,34 @@ Usage:
 
 Options:
     -a api_key     Redmine API Key
+    -t             Import time entries (works only with YouTrack 4.2 or higher)
+    -h             Show this help and exit
 """ % (basename, basename)
 
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'ha:')
+        params = {}
         r_api_key = None
+        opts, args = getopt.getopt(sys.argv[1:], 'hta:')
         for opt, val in opts:
             if opt == '-h':
                 usage()
                 sys.exit(0)
+            if opt == '-t':
+                params['import_time_entries'] = True
             if opt == '-a':
                 r_api_key = val
         if r_api_key: 
             r_url, y_url, y_user, y_password = args[:4]
             project_ids = args[4:]
             redmine_importer = RedmineImporter(
-                r_api_key, r_url, None, None, y_url, y_user, y_password)
+                r_api_key, r_url, None, None, y_url, y_user, y_password, params)
         else:
             r_url, r_user, r_password, y_url, y_user, y_password = args[:6]
             project_ids = args[6:]
             redmine_importer = RedmineImporter(
-                None, r_url, r_user, r_password, y_url, y_user, y_password)
+                None, r_url, r_user, r_password, y_url, y_user, y_password, params)
     except getopt.GetoptError, e:
         print e
         usage()
@@ -76,9 +81,10 @@ def to_unixtime(time_string):
 
 
 class RedmineImporter(object):
-    def __init__(self, r_url, r_api_key, r_user, r_pass, y_url, y_user, y_pass):
+    def __init__(self, r_url, r_api_key, r_user, r_pass, y_url, y_user, y_pass, params):
         self._source = redmine.RedmineClient(r_url, r_api_key, r_user, r_pass)
         self._target = youtrack.connection.Connection(y_url, y_user, y_pass)
+        self._params = params
         self._project_lead = y_user
         self._projects = None
         self._max_issue_ids = {}
@@ -328,7 +334,8 @@ class RedmineImporter(object):
             for issue in issues:
                 self._collect_relations(issue)
                 self._add_attachments(issue)
-                self._add_work_items(issue)
+                if self._params.get('import_time_entries', False):
+                    self._add_work_items(issue)
             offset += limit
 
 
