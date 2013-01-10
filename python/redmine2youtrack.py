@@ -427,6 +427,8 @@ class RedmineImporter(object):
     def _create_field_value(self, project_id, field_name, field_type, value):
         if field_type.startswith('user'):
             value.name = self._create_user(value).login
+        if field_name == 'Assignee':
+            return
         if field_name in youtrack.EXISTING_FIELDS:
             return
         self._create_field(project_id, field_name, field_type)
