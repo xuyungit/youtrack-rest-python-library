@@ -14,7 +14,7 @@ __author__ = 'user'
 
 def main():
     source_url, source_login, source_password, target_url, target_login, target_password, project_id = sys.argv[1:8]
-    zendesk2youtrack(source_url, source_login, source_passwщrd, target_url, target_login, target_password, project_id)
+    zendesk2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id)
 
 
 def zendesk2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id):
@@ -96,8 +96,8 @@ class ZendeskYouTrackImporter(YouTrackImporter):
             ytg.name = g
             yt_groups.append(ytg)
         yt_user = User()
-        yt_user.login = user[u'email'] if user[u"email"] is not None else user[u'name'].replace(" ", "_")
         yt_user.email = user[u'email']
+        yt_user.login = yt_user.email if (yt_user.email is not None) and len(yt_user.email.strip()) else user[u'name'].replace(" ", "_")
         yt_user.fullName = user[u'name']
         yt_user.getGroups = lambda: yt_groups
         return yt_user
