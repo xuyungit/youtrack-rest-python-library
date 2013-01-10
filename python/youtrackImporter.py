@@ -72,7 +72,7 @@ class YouTrackImporter(object):
             issues = self._get_issues(project_id, after, limit)
             if not len(issues):
                 break
-            after += len(issues)
+            after += limit
             self._target.importIssues(project_id, project_id + u' assignees',
                 [self._to_yt_issue(issue, project_id) for issue in issues])
             for issue in issues:
@@ -259,7 +259,7 @@ class YouTrackImporter(object):
     def _to_yt_comment(self, comment):
         raise NotImplementedError
 
-    def _get_attachments(self, param):
+    def _get_attachments(self, issue_id):
         return []
 
     def _get_issues(self, project_id, after, limit):

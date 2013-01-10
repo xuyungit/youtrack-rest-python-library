@@ -2,15 +2,19 @@ import sys
 from youtrack.connection import Connection
 from youtrackImporter import YouTrackImporter, YouTrackImportConfig
 from youtrackImporter import AUTO_ATTACHED, NAME, NUMBER_IN_PROJECT, TYPE, POLICY
-from youtrack import User, Group
+from youtrack import User, Group, Comment, Attachment
 import zendesk
 from zendesk.zendeskClient import ZendeskClient
+import datetime
+import calendar
+import urllib2
+
 
 __author__ = 'user'
 
 def main():
-    source_url, source_login, source_passowrd, target_url, target_login, target_password, project_id = sys.argv[1:8]
-    zendesk2youtrack(source_url, source_login, source_passowrd, target_url, target_login, target_password, project_id)
+    source_url, source_login, source_password, target_url, target_login, target_password, project_id = sys.argv[1:8]
+    zendesk2youtrack(source_url, source_login, source_passwщrd, target_url, target_login, target_password, project_id)
 
 
 def zendesk2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id):
@@ -18,7 +22,7 @@ def zendesk2youtrack(source_url, source_login, source_password, target_url, targ
     source = ZendeskClient(source_url, source_login, source_password)
 
     importer = ZendeskYouTrackImporter(source, target, ZendeskYouTrackImportConfig(zendesk.NAMES, {}, {}))
-    importer.do_import({project_id : project_id})
+    importer.do_import({project_id: project_id})
 
 
 class ZendeskYouTrackImporter(YouTrackImporter):
@@ -35,16 +39,40 @@ class ZendeskYouTrackImporter(YouTrackImporter):
         return yt_issue
 
     def _to_yt_comment(self, comment):
-        raise NotImplementedError
+        yt_comment = Comment()
+        user = self._to_yt_user(comment[u'author_id'])
+        self._import_user(user)
+        yt_comment.author = user.login
+        yt_comment.text = comment[u'body']
+        yt_comment.created = self.to_unix_date(comment[u'created_at'])
+        return yt_comment
 
-    def _get_attachments(self, param):
-        return []
+    def _get_attachments(self, issue_id):
+        result = []
+        for audit in self._source.get_ticket_audits(issue_id):
+            created = audit[u'created_at']
+            for event in audit[u'events']:
+                attachments_key = u'attachments'
+                if (attachments_key in event) and (len(event[attachments_key])):
+                    user = self._to_yt_user(event["author_id"])
+                    self._import_user(user)
+                    for attachment in event[attachments_key]:
+                        result.append(ZdAttachment(attachment[u"file_name"], self.to_unix_date(created), user.login, attachment[u"content_url"]))
+        return result
+
 
     def _get_issues(self, project_id, after, limit):
         return self._source.get_issues(after, limit)
 
     def _get_comments(self, issue):
-        return []
+        result = []
+        for audit in self._source.get_ticket_audits(self._get_issue_id(issue)):
+            created = audit[u"created_at"]
+            for event in audit[u'events']:
+                if event[u'type'] == u"Comment":
+                    event[u"created_at"] = created
+                    result.append(event)
+        return result[1:]
 
     def _get_custom_fields_for_projects(self, project_ids):
         fields = self._source.get_custom_fields()
@@ -68,11 +96,15 @@ class ZendeskYouTrackImporter(YouTrackImporter):
             ytg.name = g
             yt_groups.append(ytg)
         yt_user = User()
-        yt_user.login = user[u'email']
+        yt_user.login = user[u'email'] if user[u"email"] is not None else user[u'name'].replace(" ", "_")
         yt_user.email = user[u'email']
         yt_user.fullName = user[u'name']
         yt_user.getGroups = lambda: yt_groups
         return yt_user
+
+    def to_unix_date(self, date):
+        dt = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ")
+        return str(calendar.timegm(dt.timetuple()) * 1000)
 
 
 class ZendeskYouTrackImportConfig(YouTrackImportConfig):
@@ -86,11 +118,22 @@ class ZendeskYouTrackImportConfig(YouTrackImportConfig):
             {NAME: u'State', TYPE: u'state[1]', POLICY: '0'},
             {NAME: u'Assignee', TYPE: u'user[1]', POLICY: '2'},
             {NAME: u'Due date', TYPE: u'date'},
-            {NAME: u'Organization', TYPE: u'enum[1]', POLICY:'0'}
+            {NAME: u'Organization', TYPE: u'enum[1]', POLICY: '0'}
         ]
 
     def get_field_type(self, name, type):
         {}.get(type)
+
+class ZdAttachment():
+    def __init__(self, name, created, author_login, url):
+        self.name = name
+        self.created = created
+        self.authorLogin = author_login
+        self._url = url
+
+    def getContent(self):
+        f = urllib2.urlopen(urllib2.Request(self._url))
+        return f
 
 
 if __name__ == "__main__":
