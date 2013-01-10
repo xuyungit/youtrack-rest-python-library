@@ -7,7 +7,7 @@ import csvClient
 from csvClient.client import Client
 import csvClient.youtrackMapping
 import youtrack
-from youtrackImporter import YouTrackImporter, YouTrackImportConfig
+from youtrackImporter import *
 
 csvClient.FIELD_TYPES.update(youtrack.EXISTING_FIELD_TYPES)
 from youtrack import YouTrackException, Issue, User, Comment
