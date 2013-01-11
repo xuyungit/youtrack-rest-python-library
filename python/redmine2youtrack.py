@@ -2,6 +2,7 @@
 
 import os
 import sys
+import re
 import getopt
 import calendar
 import urllib2
@@ -72,12 +73,21 @@ def main():
 
 
 def to_unixtime(time_string):
-    try:
+    tz_diff = 0
+    if len(time_string) == 10:
         dt = datetime.strptime(time_string, '%Y-%m-%d')
-    except ValueError:
-        dt = datetime.strptime(time_string, '%Y-%m-%dT%H:%M:%SZ')
-    return calendar.timegm(dt.timetuple()) * 1000
-
+    else:
+        m = re.search('(Z|([+-])(\d\d):?(\d\d))$', time_string)
+        if m:
+            tzm = m.groups()
+            time_string = time_string[0:-len(tzm[0])]
+            if tzm[0] != 'Z':
+                tz_diff = int(tzm[2]) * 60 + int(tzm[3])
+                if tzm[1] == '-':
+                    tz_diff = -tz_diff
+        dt = datetime.strptime(
+            time_string.replace('T', ' '), '%Y-%m-%d %H:%M:%S')
+    return (calendar.timegm(dt.timetuple()) + tz_diff) * 1000
 
 
 class RedmineImporter(object):
@@ -144,7 +154,7 @@ class RedmineImporter(object):
         project_id = project.identifier
         project_name = project.name
         project_desc = ''
-        if hasattr(project, 'description'):
+        if hasattr(project, 'description') and project.description is not None:
             project_desc = project.description
         
         print "===> Importing Project '%s' (%s)" % \
@@ -325,12 +335,13 @@ class RedmineImporter(object):
         offset = 0
         assignee_group = self._get_assignee_group_name(project_id)
         relations = {}
+        pid = self._get_project(project_id).id
         while (True):
             issues = self._source.get_project_issues(project_id, limit, offset)
             if not issues:
                 break
             self._target.importIssues(project_id, assignee_group,
-                [self._make_issue(issue, project_id) for issue in issues])
+                [self._make_issue(i, project_id) for i in issues if i.project.id == pid])
             for issue in issues:
                 self._collect_relations(issue)
                 self._add_attachments(issue)

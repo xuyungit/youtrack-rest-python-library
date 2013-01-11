@@ -1,7 +1,7 @@
 import sys
 import os
 from pyactiveresource.activeresource import ActiveResource
-from pyactiveresource.connection import ResourceNotFound
+from pyactiveresource.connection import ResourceNotFound, MethodNotAllowed
 import urlparse
 
 
@@ -123,7 +123,7 @@ class RedmineClient(object):
         for role in roles:
             try:
                 role.attributes['permissions'] = Role().find(role.id).permissions
-            except ResourceNotFound:
+            except (ResourceNotFound, MethodNotAllowed):
                 print "WARN: Can't get permissions for roles."
                 print "WARN: This Redmine version doesn't support this feature."
                 break
