@@ -96,8 +96,12 @@ class ZendeskYouTrackImporter(YouTrackImporter):
             ytg.name = g
             yt_groups.append(ytg)
         yt_user = User()
-        yt_user.email = user[u'email']
-        yt_user.login = yt_user.email if (yt_user.email is not None) and len(yt_user.email.strip()) else user[u'name'].replace(" ", "_")
+        if user[u'email'] is None:
+            yt_user.email = "example@example.com"
+            yt_user.login = user[u'name'].replace(" ", "_")
+        else:
+            yt_user.email = user[u'email']
+            yt_user.login = yt_user.email
         yt_user.fullName = user[u'name']
         yt_user.getGroups = lambda: yt_groups
         return yt_user
