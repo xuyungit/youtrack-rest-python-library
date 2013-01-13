@@ -125,34 +125,48 @@ class RedmineImporter(object):
 
 
     def _get_projects(self, project_ids=None, by_internal_id=False):
-        if self._projects is None:
-            self._projects = {'by_iid': {}, 'by_pid': {}}
-            for project in self._source.get_projects(project_ids):
-                self._projects['by_iid'][project.id] = project
-                self._projects['by_pid'][project.identifier] = project
-        by = 'by_pid'
         if by_internal_id:
             by = 'by_iid'
-        #if project_ids:
-        #    result = {}
-        #    for _id in project_ids:
-        #        try:
-        #            result[_id] = self._projects[by][_id]
-        #        except KeyError:
-        #            raise redmine.RedmineException(
-        #                "Project '%s' doesn't exist in Redmine" % _id)
-        #    return result
+        else:
+            by = 'by_pid'
+        if self._projects is None:
+            self._projects = {'by_iid': {}, 'by_pid': {}}
+        if project_ids:
+            new_projects = [pid for pid in project_ids if \
+                            pid not in self._projects[by]]
+        else:
+            new_projects = None
+        if new_projects is None or new_projects:
+            for project in self._source.get_projects(new_projects):
+                self._projects['by_iid'][project.id] = project
+                self._projects['by_pid'][project.identifier] = project
+        if project_ids:
+            result = {}
+            for pid in project_ids:
+                try:
+                    result[pid] = self._projects[by][pid]
+                except KeyError:
+                    raise redmine.RedmineException(
+                        "Project '%s' doesn't exist in Redmine" % pid)
         return self._projects[by]
 
 
-
     def _get_project(self, project_id, by_internal_id=False):
-        return self._get_projects(by_internal_id=by_internal_id)[project_id]
-        
+        return self._get_projects([project_id], by_internal_id)[project_id]
+
+
+    def _get_project_name(self, project):
+        name = project.name
+        while True:
+            if not hasattr(project, 'parent'):
+                break
+            name = project.parent.name + ' / ' + name
+            project = self._get_project(project.parent.id, True)
+        return name
 
     def _import_project(self, project):
         project_id = project.identifier
-        project_name = project.name
+        project_name = self._get_project_name(project)
         project_desc = ''
         if hasattr(project, 'description') and project.description is not None:
             project_desc = project.description
@@ -274,7 +288,8 @@ class RedmineImporter(object):
         groups_by_role = {}
         if members:
             for member in members:
-                roles = [r.name for r in member.roles]
+                # Sometimes roles can be duplicated
+                roles = set([r.name for r in member.roles])
                 if hasattr(member, 'group'):
                     group = self._to_yt_group(member.group.name)
                     for role in roles:
@@ -340,8 +355,9 @@ class RedmineImporter(object):
             issues = self._source.get_project_issues(project_id, limit, offset)
             if not issues:
                 break
+            issues = [issue for issue in issues if issue.project.id == pid]
             self._target.importIssues(project_id, assignee_group,
-                [self._make_issue(i, project_id) for i in issues if i.project.id == pid])
+                [self._make_issue(issue, project_id) for issue in issues])
             for issue in issues:
                 self._collect_relations(issue)
                 self._add_attachments(issue)

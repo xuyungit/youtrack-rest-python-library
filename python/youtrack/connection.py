@@ -434,27 +434,27 @@ class Connection(object):
         return [youtrack.UserRole(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
     def createRole(self, role):
-        url_role_name = urllib.quote(role.name)
-        url_role_dscr = urllib.quote(role.description) if hasattr(role, 'description') else ''
+        url_role_name = urllib.quote_plus(role.name)
+        url_role_dscr = urllib.quote_plus(role.description) if hasattr(role, 'description') else ''
         content = self._put('/admin/role/%s?description=%s' % (url_role_name, url_role_dscr))
         return content
 
     def changeRole(self, role, new_name, new_description):
-        url_role_name = urllib.quote(role.name)
-        url_new_name = urllib.quote(new_name)
-        url_new_dscr = urllib.quote(new_description)
+        url_role_name = urllib.quote_plus(role.name)
+        url_new_name = urllib.quote_plus(new_name)
+        url_new_dscr = urllib.quote_plus(new_description)
         content = self._req('POST',
             '/admin/role/%s?newName=%s&description=%s' % (url_role_name, url_new_name, url_new_dscr))
         return content
 
     def addPermissionToRole(self, role, permission):
-        url_role_name = urllib.quote(role.name)
-        url_prm_name = urllib.quote(permission.name)
+        url_role_name = urllib.quote_plus(role.name)
+        url_prm_name = urllib.quote_plus(permission.name)
         content = self._req('POST', '/admin/role/%s/permission/%s' % (url_role_name, url_prm_name))
         return content
 
     def getRolePermissions(self, role):
-        response, content = self._req('GET', '/admin/role/%s/permission' % urllib.quote(role.name))
+        response, content = self._req('GET', '/admin/role/%s/permission' % urllib.quote_plus(role.name))
         xml = minidom.parseString(content)
         return [youtrack.Permission(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
