@@ -44,6 +44,9 @@ class FBClient(object):
         except:
             print "Can't get Community users"
 
+        if 'FogBugz' not in [u.login for u in self._users]:
+            self._users.append(FBUser('FogBugz'))
+
         return self._users
 
     def get_areas(self, ix_project):
