@@ -28,6 +28,14 @@ class ZendeskClient:
         if response.status == 200:
             return content[u'ticket_fields']
 
+    def get_custom_field(self, id):
+        response, content = self._get("/ticket_fields/%s.json" % id)
+        if response.status == 200:
+            return content["ticket_field"]
+        else:
+            return None
+
+
     def get_organization(self, id):
         response, content = self._get("/organizations/" + str(id) + ".json")
         if response.status == 200:

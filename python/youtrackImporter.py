@@ -138,6 +138,8 @@ class YouTrackImporter(object):
             return
         if isinstance(value, list) and not len(value):
             return
+        if (isinstance(value, str) or isinstance(value, unicode)) and not len(value):
+            return
 
         #get yt field name and field type
         field_name = self._get_field_name(key, project_id)

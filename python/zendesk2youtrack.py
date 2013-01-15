@@ -34,8 +34,8 @@ class ZendeskYouTrackImporter(YouTrackImporter):
 
     def _to_yt_issue(self, issue, project_id):
         yt_issue = super(ZendeskYouTrackImporter, self)._to_yt_issue(issue, project_id)
-        for key, value in issue[u'custom_fields']:
-            self.process_field(key, project_id, yt_issue, value)
+        for item in issue[u'custom_fields']:
+            self.process_field(self._source.get_custom_field(str(item[u'id']))[u'title'], project_id, yt_issue, item[u'value'])
         return yt_issue
 
     def _to_yt_comment(self, comment):
@@ -125,7 +125,9 @@ class ZendeskYouTrackImportConfig(YouTrackImportConfig):
         ]
 
     def get_field_type(self, name, type):
-        {}.get(type)
+        types = {u"text": u"string", u"checkbox": u"enum[*]", u"date": u"date", u"integer": u"integer",
+                 u"decimal": u"float", u"regexp": u"string", u"tagger": u"enum[1]"}
+        return types.get(type)
 
 class ZdAttachment():
     def __init__(self, name, created, author_login, url):
