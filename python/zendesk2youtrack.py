@@ -60,9 +60,8 @@ class ZendeskYouTrackImporter(YouTrackImporter):
                         result.append(ZdAttachment(attachment[u"file_name"], self.to_unix_date(created), user.login, attachment[u"content_url"]))
         return result
 
-
-    def _get_issues(self, project_id, after, limit):
-        return self._source.get_issues(after, limit)
+    def _get_issues(self, project_id):
+        return self._source.get_issues()
 
     def _get_comments(self, issue):
         result = []

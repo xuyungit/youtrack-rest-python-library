@@ -2,6 +2,7 @@ from youtrack import YouTrackException, Issue
 import youtrack
 from youtrack.connection import Connection
 from youtrack.importHelper import create_custom_field
+import itertools
 
 __author__ = 'user'
 
@@ -57,7 +58,7 @@ class YouTrackImporter(object):
 
     def _attach_fields_to_project(self, project_id):
         for yt_field in self._get_custom_fields_for_projects([project_id]):
-            if  not yt_field[u'auto_attached']:
+            if not yt_field[u'auto_attached']:
                 # this means, that field was not attached to project yet
                 field_name = yt_field[NAME]
                 try:
@@ -66,13 +67,12 @@ class YouTrackImporter(object):
                     print(u'Field [%s] is already attached' % field_name)
 
     def _import_issues(self, project_id):
-        after = 0
         limit = 100
+        all_issues = self._get_issues(project_id)
         while True:
-            issues = self._get_issues(project_id, after, limit)
+            issues = list(itertools.islice(all_issues, None, limit))
             if not len(issues):
                 break
-            after += limit
             self._target.importIssues(project_id, project_id + u' assignees',
                 [self._to_yt_issue(issue, project_id) for issue in issues])
             for issue in issues:
@@ -82,15 +82,16 @@ class YouTrackImporter(object):
                 self._import_attachments(yt_issue_id, issue_attachments)
 
     def _import_tags(self, project_ids):
-        limit = 200
+        limit = 100
         existing_tags = set([])
         for project_id in project_ids:
-            after = 0
+            all_tags = self._get_issue_tags(project_id)
             while True:
-                issue_tags = self._get_issue_tags(project_id, after, limit).values()
-                if not len(issue_tags):
+                l = list(itertools.islice(all_tags, None, limit))
+                if not len(l):
                     break
-                existing_tags |= set(issue_tags)
+                issue_tags = zip(*l)[1]
+                existing_tags |= set([item for tags in issue_tags for item in tags])
         self._do_import_tags(project_ids, existing_tags)
 
     def _is_prefix_of_any_other_tag(self, tag, other_tags):
@@ -108,22 +109,15 @@ class YouTrackImporter(object):
                 tags_to_import_after.add(tag)
             else:
                 tags_to_import_now.add(tag)
-        max = 100
         for project_id in project_ids:
-            after = 0
-            while True:
-                issue_tags = self._get_issue_tags(project_id, after, max)
-                if not len(issue_tags):
-                    break
-                for (issue_id, tags) in issue_tags.items():
-                    yt_issue_id = u'%s-%s' % (project_id, issue_id)
-                    for tag in tags:
-                        if tag in tags_to_import_now:
-                            try:
-                                self._target.executeCommand(yt_issue_id, u'tag ' + tag)
-                            except YouTrackException:
-                                print(u'Failed to import tag for issue [%s]' % yt_issue_id)
-                after += max
+            for (issue_id, tags) in self._get_issue_tags(project_id):
+                yt_issue_id = u'%s-%s' % (project_id, issue_id)
+                for tag in tags:
+                    if tag in tags_to_import_now:
+                        try:
+                            self._target.executeCommand(yt_issue_id, u'tag ' + tag)
+                        except YouTrackException:
+                            print(u'Failed to import tag for issue [%s]' % yt_issue_id)
         if len(tags_to_import_after):
             self._do_import_tags(project_ids, tags_to_import_after)
 
@@ -262,7 +256,7 @@ class YouTrackImporter(object):
     def _get_attachments(self, issue_id):
         return []
 
-    def _get_issues(self, project_id, after, limit):
+    def _get_issues(self, project_id):
         raise NotImplementedError
 
     def _import_attachments(self, issue_id, issue_attachments):
@@ -272,13 +266,9 @@ class YouTrackImporter(object):
     def _get_comments(self, issue):
         raise NotImplementedError
 
-    def _get_issue_tags(self, project_id, after, limit):
+    def _get_issue_tags(self, project_id):
         key = self._import_config.get_key_for_field_name(u'Tags')
-        result = {}
-        for issue in self._get_issues(project_id, after, limit):
-            if key in issue:
-                result[self._get_issue_id(issue)] = issue[key]
-        return result
+        return ((self._get_issue_id(issue), issue[key]) for issue in self._get_issues(project_id) if (key in issue ) and len(issue[key]))
 
     def _get_issue_links(self, project_id, after, limit):
         return []

@@ -11,16 +11,14 @@ class ZendeskClient:
     def _rest_url(self):
         return self._url + "/api/v2"
 
-    def get_issues(self, after, limit):
-        response, content = self._get("/tickets.json?page=" + str(after / limit + 1) + "&per_page=" + str(limit))
-        if response.status == 200:
-            tickets = content[u'tickets']
+    def get_issues(self):
+        iterator = PageIterator(self, "/tickets.json", u"tickets")
+        for elem in iterator:
             org_id_key = u'organization_id'
-            for t in tickets:
-                org_id = t.get(org_id_key)
-                if org_id is not None:
-                    t[org_id_key] = self.get_organization(org_id)[u'name']
-            return tickets
+            org_id = elem.get(org_id_key)
+            if org_id is not None:
+                elem[org_id_key] = self.get_organization(org_id)[u'name']
+            yield elem
 
     def get_ticket_audits(self, ticket_id):
         return PageIterator(self, "/tickets/%s/audits.json" % ticket_id, u"audits")
@@ -43,10 +41,7 @@ class ZendeskClient:
 
     def get_groups_for_user(self, id):
         iterator = PageIterator(self, "/users/" + str(id) + "/group_memberships.json", u"group_memberships")
-        result = []
-        for gm in iterator:
-            result.append(self.get_group(gm["group_id"])["name"])
-        return result
+        return [self.get_group(gm["group_id"])["name"] for gm in iterator]
 
     def get_group(self, id):
         response, content = self._get("/groups/" + str(id) + ".json")

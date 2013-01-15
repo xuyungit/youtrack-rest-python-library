@@ -9,5 +9,6 @@ NAMES = {
     u'subject'          : u'summary',
     u'updated_at'       : u'updated',
     u'status'           : u'state',
-    u'organization_id'  : u'organization'
+    u'organization_id'  : u'organization',
+    u'tags'             : u'Tags'
 }

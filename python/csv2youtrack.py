@@ -73,24 +73,11 @@ class CsvYouTrackImporter(YouTrackImporter):
         match_result = number_regex.search(issue[self._import_config.get_key_for_field_name(u'numberInProject')])
         return match_result.group()
 
-    def _get_issues(self, project_id, after, limit):
-        if after < self._after:
-            self._source.reset()
-            self._after = 0
-        result = []
-        while True:
-            issues = self._source.get_issue_list(limit - len(result))
-            if not len(issues):
-                return result
-            for issue in issues:
-                if self._import_config.get_project(issue)[0] == project_id:
-                    self._after += 1
-                    if after <= self._after:
-                        result.append(issue)
-                if len(result) == limit:
-                    break
-
-        return result
+    def _get_issues(self, project_id):
+        issues = self._source.get_issues()
+        for issue in issues:
+            if self._import_config.get_project(issue)[0] == project_id:
+                yield issue
 
     def _get_comments(self, issue):
         return issue[self._import_config.get_key_for_field_name(u'comments')]
@@ -103,7 +90,7 @@ class CsvYouTrackImporter(YouTrackImporter):
     def _get_projects(self):
         result = {}
         while True:
-            issues = self._source.get_issue_list(200)
+            issues = self._source.get_issues(200)
             if not len(issues):
                 return result
             for issue in issues:
