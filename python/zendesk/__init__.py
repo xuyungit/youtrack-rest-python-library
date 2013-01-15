@@ -10,5 +10,6 @@ NAMES = {
     u'updated_at'       : u'updated',
     u'status'           : u'state',
     u'organization_id'  : u'organization',
-    u'tags'             : u'Tags'
+    u'tags'             : u'Tags',
+    u'collaborator_ids' : u'watcherName'
 }

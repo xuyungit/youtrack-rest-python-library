@@ -216,6 +216,8 @@ class YouTrackImporter(object):
         if value is None:
             return None
         values_map = self._import_config.get_value_mapping(field_name)
+        if isinstance(value, list):
+            return [self.get_field_value(field_name, field_type, v) for v in value]
         if field_type.startswith(u'user'):
             return self._to_yt_user(value)
         if field_type.lower() == u"date":
@@ -224,8 +226,6 @@ class YouTrackImporter(object):
             return values_map[value] if value in values_map else value.replace("/", " ")
         if isinstance(value, int):
             return values_map[value] if value in values_map else str(value)
-        if isinstance(value, list):
-            return [self.get_field_value(field_name, field_type, v) for v in value]
 
     def to_unix_date(self, date):
         return date
