@@ -291,12 +291,13 @@ class Client(object):
 
     def get_voters_by_id(self, bug_id):
         result = list([])
-        cursor = self.sql_cnx.cursor()
-        who_row = 'who'
-        request = "SELECT %s FROM votes WHERE bug_id=%s" % (who_row, str(bug_id))
-        cursor.execute(request)
-        for row in cursor:
-            result.append(self.get_user_by_id(row[who_row]))
+        if self.check_table_exists('votes'):
+            cursor = self.sql_cnx.cursor()
+            who_row = 'who'
+            request = "SELECT %s FROM votes WHERE bug_id=%s" % (who_row, str(bug_id))
+            cursor.execute(request)
+            for row in cursor:
+                result.append(self.get_user_by_id(row[who_row]))
         return result
 
     def _get_product_id_by_bug_id(self, bug_id):
@@ -325,3 +326,8 @@ class Client(object):
             result.append(row[name_row].encode('utf8'))
         return result
 
+    def check_table_exists(self, table_name):
+        cursor = self.sql_cnx.cursor()
+        request = "SHOW TABLES LIKE '%s'" % table_name
+        cursor.execute(request)
+        return cursor.execute(request) > 0
