@@ -89,14 +89,11 @@ class CsvYouTrackImporter(YouTrackImporter):
 
     def _get_projects(self):
         result = {}
-        while True:
-            issues = self._source.get_issues(200)
-            if not len(issues):
-                return result
-            for issue in issues:
-                project_id, project_name = self._import_config.get_project(issue)
-                if project_id not in result:
-                    result[project_id] = project_name
+        for issue in self._source.get_issues():
+            project_id, project_name = self._import_config.get_project(issue)
+            if project_id not in result:
+                result[project_id] = project_name
+        return result
 
     def _get_custom_fields_for_projects(self, project_ids):
         result = [elem for elem in [self._import_config.get_field_info(field_name) for field_name in

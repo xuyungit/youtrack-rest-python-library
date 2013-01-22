@@ -19,6 +19,8 @@ class Client(object) :
         reader.next()
         header_len = len(self._header)
         for row in reader:
+            if not row:
+                continue
             issue = {"comments": []}
             for i in range(len(row)):
                 value = row[i].strip()
