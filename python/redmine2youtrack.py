@@ -2,6 +2,7 @@
 
 import os
 import sys
+import traceback
 import re
 import getopt
 import calendar
@@ -369,23 +370,29 @@ class RedmineImporter(object):
     def _make_issue(self, redmine_issue, project_id):
         issue = youtrack.Issue()
         issue['comments'] = []
-        for name, value in redmine_issue.attributes.items():
-            if name in ('project', 'attachments'):
-                continue
-            if name == 'id':
-                value = str(self._get_yt_issue_number(redmine_issue))
-            if name == 'custom_fields':
-                for field in value:
-                    self._add_field_to_issue(
-                        project_id, issue, field.name, field.value)
-            elif name == 'journals':
-                self._add_journals(issue, value)
-            else:
-                if name == 'category':
-                    value = self._to_yt_subsystem(value)
-                if name == 'fixed_version':
-                    value = self._to_yt_version(value)
-                self._add_field_to_issue(project_id, issue, name, value)
+        try:
+            for name, value in redmine_issue.attributes.items():
+                if name in ('project', 'attachments'):
+                    continue
+                if name == 'id':
+                    value = str(self._get_yt_issue_number(redmine_issue))
+                if name == 'custom_fields':
+                    for field in value:
+                        self._add_field_to_issue(
+                            project_id, issue, field.name, field.value)
+                elif name == 'journals':
+                    self._add_journals(issue, value)
+                else:
+                    if name == 'category':
+                        value = self._to_yt_subsystem(value)
+                    if name == 'fixed_version':
+                        value = self._to_yt_version(value)
+                    self._add_field_to_issue(project_id, issue, name, value)
+        except Exception as e:
+            print 'Failed to process issue with id=%s:' % redmine_issue.id
+            redmine_issue.dump()
+            traceback.print_exc()
+            raise e
         return issue
 
     

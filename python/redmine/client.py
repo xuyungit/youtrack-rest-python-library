@@ -11,6 +11,16 @@ class RedmineResource(ActiveResource):
             self.name = attributes
         super(RedmineResource, self).__init__(attributes, prefix_options)
 
+    def dump(self, indent=2):
+        ind = ' ' * indent
+        for name, value in self.attributes.items():
+            if not isinstance(value, RedmineResource):
+                print ind, name, '=', value
+            else:
+                print ind, name + ':'
+                value.dump(indent + 2)
+                print ind, '---'
+
 class Project(RedmineResource): pass
 
 class Issue(RedmineResource): pass
