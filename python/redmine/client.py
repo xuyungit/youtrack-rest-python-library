@@ -15,11 +15,20 @@ class RedmineResource(ActiveResource):
         ind = ' ' * indent
         for name, value in self.attributes.items():
             if not isinstance(value, RedmineResource):
-                print ind, name, '=', value
+                if not isinstance(value, list):
+                    value = [value]
+                for v in value:
+                    if isinstance(v, RedmineResource):
+                        print ind, name + ':'
+                        v.dump(indent + 2)
+                        print ind, '---'
+                    else:
+                        print ind, name, '=', value
             else:
                 print ind, name + ':'
                 value.dump(indent + 2)
                 print ind, '---'
+
 
 class Project(RedmineResource): pass
 
