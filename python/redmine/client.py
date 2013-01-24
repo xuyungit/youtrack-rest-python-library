@@ -3,6 +3,7 @@ import os
 from pyactiveresource.activeresource import ActiveResource
 from pyactiveresource.connection import ResourceNotFound, MethodNotAllowed
 import urlparse
+import pprint
 
 
 class RedmineResource(ActiveResource):
@@ -11,23 +12,8 @@ class RedmineResource(ActiveResource):
             self.name = attributes
         super(RedmineResource, self).__init__(attributes, prefix_options)
 
-    def dump(self, indent=2):
-        ind = ' ' * indent
-        for name, value in self.attributes.items():
-            if not isinstance(value, RedmineResource):
-                if not isinstance(value, list):
-                    value = [value]
-                for v in value:
-                    if isinstance(v, RedmineResource):
-                        print ind, name + ':'
-                        v.dump(indent + 2)
-                        print ind, '---'
-                    else:
-                        print ind, name, '=', value
-            else:
-                print ind, name + ':'
-                value.dump(indent + 2)
-                print ind, '---'
+    def __repr__(self):
+        return pprint.pformat(self.attributes, indent=2, width=140)
 
 
 class Project(RedmineResource): pass
@@ -48,13 +34,9 @@ class IssueCategory(RedmineResource): pass
 
 class TimeEntry(RedmineResource): pass
 
-class Permission(RedmineResource):
-    def __repr__(self):
-        return '%s(%s)' % (self._singular, self.name)
+class Permission(RedmineResource): pass
 
-class CustomField(RedmineResource):
-    def __repr__(self):
-        return '%s(%s)' % (self._singular, self.name)
+class CustomField(RedmineResource): pass
 
 
 

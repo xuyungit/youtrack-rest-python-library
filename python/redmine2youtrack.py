@@ -389,9 +389,9 @@ class RedmineImporter(object):
                     if name == 'fixed_version':
                         value = self._to_yt_version(value)
                     self._add_field_to_issue(project_id, issue, name, value)
-        except Exception as e:
-            print 'Failed to process issue with id=%s:' % redmine_issue.id
-            redmine_issue.dump()
+        except Exception, e:
+            print 'Failed to process issue:'
+            print redmine_issue
             traceback.print_exc()
             raise e
         return issue
