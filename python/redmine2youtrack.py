@@ -196,9 +196,10 @@ class RedmineImporter(object):
         if user_id not in self._users:
             redmine_user = self._source.get_user(user_id)
             user = youtrack.User()
-            user.login = redmine_user.login
-            user.email = redmine_user.mail
-            user.fullName = redmine_user.firstname + ' ' + redmine_user.lastname
+            user.login = redmine_user.login or 'anonymous'
+            user.email = redmine_user.mail or 'example@example.com'
+            if user.login != 'anonymous':
+                user.fullName = redmine_user.firstname + ' ' + redmine_user.lastname
             if hasattr(redmine_user, 'groups'):
                 user.groups = [self._to_yt_group(g) for g in redmine_user.groups]
             self._users[user_id] = user
