@@ -11,6 +11,12 @@ from xml.sax.saxutils import escape, quoteattr
 import json
 import urllib2_file
 
+def utf8encode(source):
+    if isinstance(source, unicode):
+        source = source.encode('utf-8')
+    return source
+
+
 class Connection(object):
     def __init__(self, url, login=None, password=None, proxy_info=None, api_key=None):
         self.http = httplib2.Http(disable_ssl_certificate_validation=True) if proxy_info is None else httplib2.Http(
@@ -414,8 +420,8 @@ class Connection(object):
         return content
 
     def addUserRoleToGroup(self, group, userRole):
-        url_group_name = urllib.quote(group.name)
-        url_role_name = urllib.quote(userRole.name)
+        url_group_name = urllib.quote(utf8encode(group.name))
+        url_role_name = urllib.quote(utf8encode(userRole.name))
         response, content = self._req('PUT', '/admin/group/%s/role/%s' % (url_group_name, url_role_name),
             body=userRole.toXml())
         return content
@@ -434,15 +440,17 @@ class Connection(object):
         return [youtrack.UserRole(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
     def createRole(self, role):
-        url_role_name = urllib.quote_plus(role.name)
-        url_role_dscr = urllib.quote_plus(role.description) if hasattr(role, 'description') else ''
+        url_role_name = urllib.quote_plus(utf8encode(role.name))
+        url_role_dscr = ''
+        if hasattr(role, 'description'):
+                url_role_dscr = urllib.quote_plus(utf8encode(role.description))
         content = self._put('/admin/role/%s?description=%s' % (url_role_name, url_role_dscr))
         return content
 
     def changeRole(self, role, new_name, new_description):
-        url_role_name = urllib.quote_plus(role.name)
-        url_new_name = urllib.quote_plus(new_name)
-        url_new_dscr = urllib.quote_plus(new_description)
+        url_role_name = urllib.quote_plus(utf8encode(role.name))
+        url_new_name = urllib.quote_plus(utf8encode(new_name))
+        url_new_dscr = urllib.quote_plus(utf8encode(new_description))
         content = self._req('POST',
             '/admin/role/%s?newName=%s&description=%s' % (url_role_name, url_new_name, url_new_dscr))
         return content

@@ -319,7 +319,7 @@ class RedmineImporter(object):
 
 
     def _import_roles(self):
-        existed_roles = [role.name.encode('utf-8') for role in self._target.getRoles()]
+        existed_roles = [role.name for role in self._target.getRoles()]
         new_roles = {}
         for role in self._source.get_roles():
             if role.name in existed_roles:
