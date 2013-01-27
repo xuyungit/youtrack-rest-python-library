@@ -377,6 +377,8 @@ class RedmineImporter(object):
             for name, value in redmine_issue.attributes.items():
                 if name in ('project', 'attachments'):
                     continue
+                if name == 'assigned_to' and value.name in self._groups:
+                    continue
                 if name == 'id':
                     value = str(self._get_yt_issue_number(redmine_issue))
                 if name == 'custom_fields':
