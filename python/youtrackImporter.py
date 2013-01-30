@@ -222,10 +222,10 @@ class YouTrackImporter(object):
             return self._to_yt_user(value)
         if field_type.lower() == u"date":
             return self.to_unix_date(value)
-        if isinstance(value, str) or isinstance(value, unicode):
-            return values_map[value] if value in values_map else value.replace("/", " ")
+        if isinstance(value, basestring):
+            return values_map.get(value, value)
         if isinstance(value, int):
-            return values_map[value] if value in values_map else str(value)
+            return values_map.get(value, str(value))
 
     def to_unix_date(self, date):
         return date
