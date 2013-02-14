@@ -21,7 +21,7 @@ class Mapping(object):
         'Priority'     : 'enum[1]',
         'Assignee'     : 'user[1]',
         'Due Date'     : 'date',
-        'Estimation'   : 'integer',
+        'Estimation'   : 'period',
         'Subsystem'    : 'ownedField[1]',
         'Fix versions' : 'version[*]'
     }

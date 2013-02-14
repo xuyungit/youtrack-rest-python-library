@@ -497,7 +497,7 @@ class RedmineImporter(object):
         if field_type == 'string':
             return value
         if field_type == 'period':
-            return "%dm" % int(float(value) * 60)
+            return '%d' % int(float(value) * 60)
         if hasattr(value, 'value'):
             return value.value
         elif hasattr(value, 'name'):
