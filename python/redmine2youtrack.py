@@ -18,7 +18,7 @@ CHUNK_SIZE = 100
 
 
 def usage():
-    basename = os.path.basename(sys.argv[0]) 
+    basename = os.path.basename(sys.argv[0])
     print """
 Usage:
     %s [-t] -a api_key r_url y_url y_user y_password [project_id ...]
@@ -106,9 +106,7 @@ class RedmineImporter(object):
         self._subsystems = {}
         self._versions = {}
 
-    
     def do_import(self, project_ids):
-        projects2import = []
         try:
             projects2import = self._get_projects(project_ids)
         except redmine.RedmineException, e:
@@ -124,7 +122,6 @@ class RedmineImporter(object):
         print '===> Apply Relations'
         self._apply_relations()
 
-
     def _get_projects(self, project_ids=None, by_internal_id=False):
         if by_internal_id:
             by = 'by_iid'
@@ -133,8 +130,8 @@ class RedmineImporter(object):
         if self._projects is None:
             self._projects = {'by_iid': {}, 'by_pid': {}}
         if project_ids:
-            new_projects = [pid for pid in project_ids if \
-                            pid not in self._projects[by]]
+            new_projects = [pid for pid in project_ids
+                            if pid not in self._projects[by]]
         else:
             new_projects = None
         if new_projects is None or new_projects:
@@ -151,10 +148,8 @@ class RedmineImporter(object):
                         "Project '%s' doesn't exist in Redmine" % pid)
         return self._projects[by]
 
-
     def _get_project(self, project_id, by_internal_id=False):
         return self._get_projects([project_id], by_internal_id)[project_id]
-
 
     def _get_project_name(self, project):
         name = project.name
@@ -181,12 +176,11 @@ class RedmineImporter(object):
         except youtrack.YouTrackException:
             self._target.createProjectDetailed(
                 project_id, project_name, project_desc, self._project_lead)
-            print 'Project sucessfully created'
+            print 'Project successfully created'
         print 'Import project members...'
         self._import_members(project_id)
         print 'Import issues...'
         self._import_issues(project_id)
-
 
     def _to_yt_user(self, redmine_user):
         if isinstance(redmine_user, basestring):
@@ -207,17 +201,17 @@ class RedmineImporter(object):
             self._users[user_id] = user
         return self._users[user_id]
 
-
-    def _to_yt_group(self, redmine_group, users=[]):
+    def _to_yt_group(self, redmine_group, users=None):
         if not isinstance(redmine_group, basestring):
             redmine_group = redmine_group.name
         if redmine_group not in self._groups:
             group = youtrack.Group()
             group.name = redmine_group
+            if users is None:
+                users = []
             group.users = users
             self._groups[redmine_group] = group
         return self._groups[redmine_group]
-
 
     def _to_yt_role(self, name, projects=None):
         role = youtrack.UserRole()
@@ -228,7 +222,6 @@ class RedmineImporter(object):
             else:
                 role.projects.append(projects)
         return role
-
 
     def _to_yt_version(self, version):
         if isinstance(version, basestring):
@@ -246,7 +239,6 @@ class RedmineImporter(object):
             self._versions[vid] = version
         return self._versions[vid]
 
-
     def _to_yt_subsystem(self, category):
         if isinstance(category, basestring):
             cid = category
@@ -260,10 +252,8 @@ class RedmineImporter(object):
             self._subsystems[cid] = subsystem
         return self._subsystems[cid]
 
-
     def _get_assignee_group_name(self, project_id):
         return '%s Assignees' % project_id.upper()
-
 
     def _get_yt_issue_id(self, issue, as_number_in_project=False):
         project_id = self._projects['by_iid'][issue.project.id].identifier
@@ -276,15 +266,12 @@ class RedmineImporter(object):
             return self._issue_ids[rid]['id']
         return self._to_yt_issue_id(rid)
 
-
     def _to_yt_issue_id(self, iid):
         issue = self._issue_ids[iid]
         return '%s-%d' % (issue['project_id'], issue['id'])
 
-
     def _get_yt_issue_number(self, issue):
         return self._get_yt_issue_id(issue, True)
-
 
     def _import_members(self, project_id):
         members = self._source.get_project_members(project_id)
@@ -309,18 +296,16 @@ class RedmineImporter(object):
         for role_name, users in users_by_role.items():
             group = self._to_yt_group('%s %s' % (project_id.upper(), role_name))
             self._create_group(group)
-            self._target.addUserRoleToGroup(group,
-                self._to_yt_role(role_name, project_id))
+            self._target.addUserRoleToGroup(
+                group, self._to_yt_role(role_name, project_id))
             self._target.importUsers(users)
             for user in users:
                 self._target.setUserGroup(user.login, group.name)
         for role_name, groups in groups_by_role.items():
             for group in groups:
                 self._create_group(group)
-                self._target.addUserRoleToGroup(group,
-                    self._to_yt_role(role_name, project_id))
-
-
+                self._target.addUserRoleToGroup(
+                    group, self._to_yt_role(role_name, project_id))
 
     def _import_roles(self):
         existed_roles = [role.name for role in self._target.getRoles()]
@@ -349,13 +334,11 @@ class RedmineImporter(object):
                     perm.name = perm_name
                     self._target.addPermissionToRole(role, perm)
 
-
     def _import_issues(self, project_id, limit=CHUNK_SIZE):
         offset = 0
         assignee_group = self._get_assignee_group_name(project_id)
-        relations = {}
         pid = self._get_project(project_id).id
-        while (True):
+        while True:
             issues = self._source.get_project_issues(project_id, limit, offset)
             if not issues:
                 break
@@ -368,7 +351,6 @@ class RedmineImporter(object):
                 if self._params.get('import_time_entries', False):
                     self._add_work_items(issue)
             offset += limit
-
 
     def _make_issue(self, redmine_issue, project_id):
         issue = youtrack.Issue()
@@ -400,8 +382,6 @@ class RedmineImporter(object):
             raise e
         return issue
 
-    
-
     def _convert_value(self, field_name, value):
         conv_map = redmine.Mapping.CONVERSION.get(field_name)
         if conv_map:
@@ -413,15 +393,12 @@ class RedmineImporter(object):
                     value.name = conv_map[value.name]
         return value
 
-
     def _get_yt_field_name(self, field_name):
         return redmine.Mapping.FIELD_NAMES.get(field_name, field_name)
 
-
     def _get_yt_field_type(self, field_name):
-        return redmine.Mapping.FIELD_TYPES.get(field_name,
-            youtrack.EXISTING_FIELD_TYPES.get(field_name))
-
+        return redmine.Mapping.FIELD_TYPES.get(
+            field_name, youtrack.EXISTING_FIELD_TYPES.get(field_name))
 
     def _add_field_to_issue(self, project_id, issue, name, value):
         if value is None:
@@ -443,8 +420,6 @@ class RedmineImporter(object):
             self._create_field_value(project_id, field_name, field_type, value)
             issue[field_name] = self._get_value_presentation(field_type, value)
 
-
-
     def _create_field(self, project_id, field_name, field_type):
         project_fields = self._target.getProjectCustomFields(project_id)
         if field_name.lower() not in [f.name.lower() for f in project_fields]:
@@ -453,15 +428,13 @@ class RedmineImporter(object):
                 self._target.createCustomFieldDetailed(
                     field_name, field_type, False, True, False, {})
             if field_type in ('string', 'date', 'integer', 'float', 'period'):
-                self._target.createProjectCustomFieldDetailed(project_id,
-                    field_name, 'No ' + field_name)
+                self._target.createProjectCustomFieldDetailed(
+                    project_id, field_name, 'No ' + field_name)
             else:
                 bundle_name = field_name + ' bundle'
                 create_bundle_safe(self._target, bundle_name, field_type)
-                self._target.createProjectCustomFieldDetailed(project_id,
-                    field_name, 'No ' + field_name, {'bundle': bundle_name})
-
-
+                self._target.createProjectCustomFieldDetailed(
+                    project_id, field_name, 'No ' + field_name, {'bundle': bundle_name})
 
     def _create_field_value(self, project_id, field_name, field_type, value):
         if field_type.startswith('user'):
@@ -479,13 +452,12 @@ class RedmineImporter(object):
             if hasattr(value, 'value'):
                 value = value.value
             elif hasattr(value, 'name'):
-                if not (field_type.startswith('version') or \
+                if not (field_type.startswith('version') or
                         field_type.startswith('ownedField')):
                     value = value.name
             self._target.addValueToBundle(bundle, value)
         except youtrack.YouTrackException:
             pass
-
 
     def _get_value_presentation(self, field_type, value):
         if field_type == 'date':
@@ -503,7 +475,6 @@ class RedmineImporter(object):
         elif hasattr(value, 'name'):
             return value.name
         return value
-
 
     def _create_user(self, user):
         user = self._to_yt_user(user)
@@ -527,7 +498,6 @@ class RedmineImporter(object):
             group.created = True
         return group
 
-
     def _add_journals(self, issue, journals):
         if not journals:
             return
@@ -539,7 +509,6 @@ class RedmineImporter(object):
                 comment.created = str(to_unixtime(rec.created_on))
                 issue['comments'].append(comment)
 
-
     def _add_work_items(self, issue):
         work_items = self._source.get_time_entries(issue.id)
         for t in sorted(work_items, key=lambda t: t.spent_on):
@@ -550,7 +519,6 @@ class RedmineImporter(object):
             work_item.duration = int(float(t.hours) * 60)
             self._target.createWorkItem(self._get_yt_issue_id(issue), work_item)
 
-
     def _add_attachments(self, issue):
         if not hasattr(issue, 'attachments'):
             return
@@ -559,7 +527,6 @@ class RedmineImporter(object):
             self._target.createAttachmentFromAttachment(
                 self._get_yt_issue_id(issue),
                 RedmineAttachment(attach, self._source))
-
 
     def _collect_relations(self, issue):
         link_types = {
@@ -579,7 +546,6 @@ class RedmineImporter(object):
             for child in issue.children:
                 self._push_relation(issue.id, child.id, 'subtask')
 
-
     def _push_relation(self, from_iid, to_iid, relation_type):
         from_iid = int(from_iid)
         to_iid = int(to_iid)
@@ -589,7 +555,6 @@ class RedmineImporter(object):
         if from_iid not in relations:
             relations[from_iid] = {}
         relations[from_iid][to_iid] = None
-
 
     def _apply_relations(self, limit=CHUNK_SIZE):
         links = []
@@ -614,7 +579,6 @@ class RedmineImporter(object):
             self._target.importLinks(links)
             
 
-
 class RedmineAttachment(object):
     def __init__(self, attach, source):
         self.authorLogin = attach.author.login
@@ -625,7 +589,6 @@ class RedmineAttachment(object):
 
     def getContent(self):
         return urllib2.urlopen(urllib2.Request(self._url, headers=self._headers))
-
 
 
 if __name__ == '__main__':
