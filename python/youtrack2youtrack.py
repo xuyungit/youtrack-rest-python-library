@@ -202,7 +202,6 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                     users.add(issue.getUpdater())
                     for comment in issue.getComments(): users.add(comment.getAuthor())
 
-
                     print "Collect links for issue [ " + issue.id + "]"
                     link_importer.collectLinks(issue.getLinks(True))
                     #links.extend(issue.getLinks(True))
@@ -218,8 +217,11 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                 print target.importIssues(projectId, project.name + ' Assignees', issues)
                 link_importer.addAvailableIssues(issues)
 
-                print "Transfer attachments"
                 for issue in issues:
+                    print "Process work items for issue [ " + issue.id + "]"
+                    target.importWorkItems(issue.id, source.getWorkItems(issue.id))
+
+                    print "Process attachments for issue [ " + issue.id + "]"
                     attachments = issue.getAttachments()
                     users = set([])
 

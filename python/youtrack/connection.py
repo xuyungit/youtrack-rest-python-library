@@ -142,7 +142,7 @@ class Connection(object):
                 err_content = e.read()
                 issue_id = issueId
                 attach_name = a.name
-                attach_url = a._url
+                attach_url = a.url
                 if isinstance(err_content, unicode):
                     err_content = err_content.encode('utf-8')
                 if isinstance(issue_id, unicode):
@@ -729,7 +729,7 @@ class Connection(object):
         xml =  '<workItem>'
         xml += '<date>%s</date>' % work_item.date
         xml += '<duration>%s</duration>' % work_item.duration
-        if work_item.description is not None:
+        if hasattr(work_item, 'description') and work_item.description is not None:
             xml += '<description>%s</description>' % escape(work_item.description)
         xml += '<author login=%s></author>' % quoteattr(work_item.authorLogin)
         xml += '</workItem>'
@@ -737,6 +737,10 @@ class Connection(object):
             xml = xml.encode('utf-8')
         self._reqXml('POST',
             '/issue/%s/timetracking/workitem' % urllib.quote(issue_id), xml)
+
+    def importWorkItems(self, issue_id, work_items):
+        for wi in work_items:
+            self.createWorkItem(issue_id, wi)
        
 
     def getAllBundles(self, field_type):

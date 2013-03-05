@@ -2,9 +2,12 @@
 YouTrack 2.0 REST API
 """
 
+import re
 from xml.dom import Node
 from xml.dom.minidom import Document
 from xml.dom import minidom
+
+
 EXISTING_FIELD_TYPES = {
     'numberInProject'   :   'integer',
     'summary'           :   'string',
@@ -240,6 +243,8 @@ class Link(YouTrackObject):
 class Attachment(YouTrackObject):
     def __init__(self, xml=None, youtrack=None):
         YouTrackObject.__init__(self, xml, youtrack)
+        # Workaround for JT-18936
+        self.url = re.sub(r'^.*?(?=/_persistent)', '', self.url)
 
     def getContent(self):
         return self.youtrack.getAttachmentContent(self.url.encode('utf8'))
