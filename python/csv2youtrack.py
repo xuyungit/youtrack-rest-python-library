@@ -107,7 +107,7 @@ class CsvYouTrackImportConfig(YouTrackImportConfig):
 
     def _to_unix_date(self, date):
         if csvClient.DATE_FORMAT_STRING[-2:] == "%z":
-            dt = datetime.datetime.strptime(date[:-6], csvClient.DATE_FORMAT_STRING[:-2])
+            dt = datetime.datetime.strptime(date[:-6], csvClient.DATE_FORMAT_STRING[:-2].rstrip())
         else:
             dt = datetime.datetime.strptime(date, csvClient.DATE_FORMAT_STRING)
         return str(calendar.timegm(dt.timetuple()) * 1000)
