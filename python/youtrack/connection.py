@@ -10,6 +10,7 @@ import urllib
 from xml.sax.saxutils import escape, quoteattr
 import json
 import urllib2_file
+import tempfile
 
 def utf8encode(source):
     if isinstance(source, unicode):
@@ -131,8 +132,11 @@ class Connection(object):
     def createAttachmentFromAttachment(self, issueId, a):
         try:
             content = a.getContent()
+            contentLength = None
+            if 'content-length' in content.headers.dict:
+                contentLength = int(content.headers.dict['content-length'])
             return self.importAttachment(issueId, a.name, content, a.authorLogin,
-                contentLength=int(content.headers.dict['content-length']),
+                contentLength=contentLength,
                 contentType=content.info().type,
                 created=a.created if hasattr(a, 'created') else None,
                 group=a.group if hasattr(a, 'group') else '')
@@ -170,10 +174,16 @@ class Connection(object):
 
     def _process_attachmnets(self, authorLogin, content, contentLength, contentType, created, group, issueId, name,
                              url_prefix='/issue/'):
-        if contentLength is not None:
-            content.contentLength = contentLength
         if contentType is not None:
             content.contentType = contentType
+        if contentLength is not None:
+            content.contentLength = contentLength
+        else:
+            tmp = tempfile.NamedTemporaryFile()
+            tmp.write(content.read())
+            tmp.flush()
+            tmp.seek(0)
+            content = tmp
 
         #post_data = {'attachment': content}
         post_data = {name: content}

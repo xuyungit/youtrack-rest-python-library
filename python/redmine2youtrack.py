@@ -587,11 +587,11 @@ class RedmineAttachment(object):
         self.authorLogin = attach.author.login
         self.name = attach.filename
         self.created = str(to_unixtime(attach.created_on))
-        self._url = attach.content_url
-        self._headers = source.headers
+        self.url = attach.content_url
+        self.headers = source.headers
 
     def getContent(self):
-        return urllib2.urlopen(urllib2.Request(self._url, headers=self._headers))
+        return urllib2.urlopen(urllib2.Request(self.url, headers=self.headers))
 
 
 if __name__ == '__main__':
