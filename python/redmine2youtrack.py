@@ -136,11 +136,12 @@ class RedmineImporter(object):
             new_projects = None
         if new_projects is None or new_projects:
             for project in self._source.get_projects(new_projects):
+                project.identifier = re.sub('\W', '', project.identifier)
                 self._projects['by_iid'][project.id] = project
                 self._projects['by_pid'][project.identifier] = project
         if project_ids:
             result = {}
-            for pid in project_ids:
+            for pid in [re.sub('\W', '', p) for p in project_ids]:
                 try:
                     result[pid] = self._projects[by][pid]
                 except KeyError:
@@ -178,9 +179,9 @@ class RedmineImporter(object):
                 project_id, project_name, project_desc, self._project_lead)
             print 'Project successfully created'
         print 'Import project members...'
-        self._import_members(project_id)
+        self._import_members(project)
         print 'Import issues...'
-        self._import_issues(project_id)
+        self._import_issues(project)
 
     def _to_yt_user(self, redmine_user):
         if isinstance(redmine_user, basestring):
@@ -273,8 +274,9 @@ class RedmineImporter(object):
     def _get_yt_issue_number(self, issue):
         return self._get_yt_issue_id(issue, True)
 
-    def _import_members(self, project_id):
-        members = self._source.get_project_members(project_id)
+    def _import_members(self, project):
+        project_id = project.identifier
+        members = self._source.get_project_members(project.id)
         users_by_role = {}
         groups_by_role = {}
         if members:
@@ -334,15 +336,15 @@ class RedmineImporter(object):
                     perm.name = perm_name
                     self._target.addPermissionToRole(role, perm)
 
-    def _import_issues(self, project_id, limit=CHUNK_SIZE):
+    def _import_issues(self, project, limit=CHUNK_SIZE):
+        project_id = project.identifier
         offset = 0
         assignee_group = self._get_assignee_group_name(project_id)
-        pid = self._get_project(project_id).id
         while True:
-            issues = self._source.get_project_issues(project_id, limit, offset)
+            issues = self._source.get_project_issues(project.id, limit, offset)
             if not issues:
                 break
-            issues = [issue for issue in issues if issue.project.id == pid]
+            issues = [issue for issue in issues if issue.project.id == project.id]
             self._target.importIssues(project_id, assignee_group,
                 [self._make_issue(issue, project_id) for issue in issues])
             for issue in issues:
