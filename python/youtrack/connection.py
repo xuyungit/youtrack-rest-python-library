@@ -158,7 +158,15 @@ class Connection(object):
                 print "Attachment URL: ", attach_url
             except Exception:
                 pass
-            return None
+        except Exception, e:
+            try:
+                print content.geturl()
+                print content.getcode()
+                print content.info()
+            except Exception:
+                pass
+            raise e
+            
 
     def _process_attachmnets(self, authorLogin, content, contentLength, contentType, created, group, issueId, name,
                              url_prefix='/issue/'):
