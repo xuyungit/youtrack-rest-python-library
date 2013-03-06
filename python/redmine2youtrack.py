@@ -234,7 +234,8 @@ class RedmineImporter(object):
             version = youtrack.Version()
             version.name = redmine_version.name
             version.description = redmine_version.description
-            version.releaseDate = str(to_unixtime(redmine_version.due_date))
+            if redmine_version.due_date:
+                version.releaseDate = str(to_unixtime(redmine_version.due_date))
             version.released = str(redmine_version.status == 'closed').lower()
             version.archived = 'false'
             self._versions[vid] = version
