@@ -12,6 +12,9 @@ import json
 import urllib2_file
 import tempfile
 
+def urlquote(s):
+    return urllib.quote(s).replace('/', '%2F')
+
 def utf8encode(source):
     if isinstance(source, unicode):
         source = source.encode('utf-8')
@@ -438,8 +441,8 @@ class Connection(object):
         return content
 
     def addUserRoleToGroup(self, group, userRole):
-        url_group_name = urllib.quote(utf8encode(group.name))
-        url_role_name = urllib.quote(utf8encode(userRole.name))
+        url_group_name = urlquote(utf8encode(group.name))
+        url_role_name = urlquote(utf8encode(userRole.name))
         response, content = self._req('PUT', '/admin/group/%s/role/%s' % (url_group_name, url_role_name),
             body=userRole.toXml())
         return content
@@ -458,24 +461,24 @@ class Connection(object):
         return [youtrack.UserRole(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
     def createRole(self, role):
-        url_role_name = urllib.quote_plus(utf8encode(role.name))
+        url_role_name = urlquote(utf8encode(role.name))
         url_role_dscr = ''
         if hasattr(role, 'description'):
-                url_role_dscr = urllib.quote_plus(utf8encode(role.description))
+                url_role_dscr = urlquote(utf8encode(role.description))
         content = self._put('/admin/role/%s?description=%s' % (url_role_name, url_role_dscr))
         return content
 
     def changeRole(self, role, new_name, new_description):
-        url_role_name = urllib.quote_plus(utf8encode(role.name))
-        url_new_name = urllib.quote_plus(utf8encode(new_name))
-        url_new_dscr = urllib.quote_plus(utf8encode(new_description))
+        url_role_name = urlquote(utf8encode(role.name))
+        url_new_name = urlquote(utf8encode(new_name))
+        url_new_dscr = urlquote(utf8encode(new_description))
         content = self._req('POST',
             '/admin/role/%s?newName=%s&description=%s' % (url_role_name, url_new_name, url_new_dscr))
         return content
 
     def addPermissionToRole(self, role, permission):
-        url_role_name = urllib.quote_plus(role.name)
-        url_prm_name = urllib.quote_plus(permission.name)
+        url_role_name = urlquote(role.name)
+        url_prm_name = urlquote(permission.name)
         content = self._req('POST', '/admin/role/%s/permission/%s' % (url_role_name, url_prm_name))
         return content
 
