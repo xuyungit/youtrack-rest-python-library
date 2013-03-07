@@ -93,12 +93,12 @@ class RedmineClient(object):
             if _offset is None:
                 _offset = 0
             issues = Issue.find(None, None, project_id=_id,
-                                limit=_limit, offset=_offset, sort='id')
+                                limit=_limit, offset=_offset, sort='id', status_id='*')
         elif _offset:
             issues = Issue.find(None, None, project_id=_id,
-                                offset=_offset, sort='id')
+                                offset=_offset, sort='id', status_id='*')
         else:
-            issues = Issue.find(None, None, project_id=_id, sort='id')
+            issues = Issue.find(None, None, project_id=_id, sort='id', status_id='*')
         for issue_id in [issue.id for issue in issues]:
             return_data.append(self.get_issue_details(issue_id))
         return return_data
