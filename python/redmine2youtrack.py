@@ -250,7 +250,8 @@ class RedmineImporter(object):
             redmine_cat = self._source.get_category(cid)
             subsystem = youtrack.Subsystem()
             subsystem.name = redmine_cat.name
-            subsystem.login = self._create_user(redmine_cat.assigned_to).login
+            if hasattr(redmine_cat, 'assigned_to'):
+                subsystem.login = self._create_user(redmine_cat.assigned_to).login
             self._subsystems[cid] = subsystem
         return self._subsystems[cid]
 
