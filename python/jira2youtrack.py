@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 import calendar
 import sys
 import datetime
@@ -5,7 +6,7 @@ import urllib
 import urllib2
 import jira
 from jira.client import JiraClient
-from youtrack import Issue, YouTrackException, Comment, Link
+from youtrack import Issue, YouTrackException, Comment, Link, WorkItem
 import youtrack
 from youtrack.connection import Connection
 from youtrack.importHelper import create_bundle_safe
@@ -57,6 +58,11 @@ def create_yt_issue_from_jira_issue(target, issue, project_id):
                     create_value(target, v, field_name, field_type, project_id)
                     yt_issue[field_name].append(get_value_presentation(field_type, v))
             else:
+                if (field_name.lower() == 'estimation'):
+                    if field_type == 'period':
+                        value = int(int(value) / 60)
+                    elif field_type == 'integer':
+                        value = int(int(value) / 3600)
                 if isinstance(value, int):
                     value = str(value)
                 if len(value):
@@ -150,13 +156,13 @@ def create_value(target, value, field_name, field_type, project_id):
     if field_name.lower() not in [field.name.lower() for field in target.getProjectCustomFields(project_id)]:
         if field_name.lower() not in [field.name.lower() for field in target.getCustomFields()]:
             target.createCustomFieldDetailed(field_name, field_type, False, True, False, {})
-        if field_type in ['string', 'date', 'integer']:
+        if field_type in ['string', 'date', 'integer', 'period']:
             target.createProjectCustomFieldDetailed(project_id, field_name, "No " + field_name)
         else:
             bundle_name = field_name + " bundle"
             create_bundle_safe(target, bundle_name, field_type)
             target.createProjectCustomFieldDetailed(project_id, field_name, "No " + field_name, {'bundle': bundle_name})
-    if field_type in ['string', 'date', 'integer']:
+    if field_type in ['string', 'date', 'integer', 'period']:
         return
     project_field = target.getProjectCustomField(project_id, field_name)
     bundle = target.getBundle(field_type, project_field.bundle)
@@ -169,7 +175,7 @@ def create_value(target, value, field_name, field_type, project_id):
         pass
 
 
-def to_unix_date(time_string):
+def to_unix_date(time_string, truncate=False):
     if len(time_string) == 10:
         #just date
         dt = datetime.datetime.strptime(time_string, '%Y-%m-%d')
@@ -182,13 +188,16 @@ def to_unix_date(time_string):
             tz_diff = -1
         tz_diff *= (int(time_zone[1:3]) * 60 + int(time_zone[3:5]))
         dt = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
-    return str((calendar.timegm(dt.timetuple()) + tz_diff) * 1000)
+        epoch = calendar.timegm(dt.timetuple()) + tz_diff
+        if truncate:
+            epoch = int(epoch / 86400) * 86400
+    return str(epoch * 1000)
 
 
 def get_value_presentation(field_type, value):
     if field_type == 'date':
         return to_unix_date(value)
-    if field_type == 'integer':
+    if field_type == 'integer' or field_type == 'period':
         return str(value)
     if field_type == 'string':
         return value
@@ -204,6 +213,18 @@ def process_attachments(source, target, issue):
         if 'author' in attach:
             create_user(target, attach['author'])
         target.createAttachmentFromAttachment(issue['key'], attachment)
+
+def process_worklog(source, target, issue):
+    worklog = source.get_worklog(issue['key'])
+    if worklog:
+        for w in worklog['worklogs']:
+            create_user(target, w['author'])
+            work_item = WorkItem()
+            work_item.authorLogin = w['author']['name']
+            work_item.date = to_unix_date(w['started'], truncate=True)
+            work_item.description =  w['comment']
+            work_item.duration = int(int(w['timeSpentSeconds']) / 60)
+            target.createWorkItem(issue['key'], work_item)
 
 
 def jira2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_id,
@@ -230,10 +251,10 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
         pass
 
     for i in range(first_chunk, last_chunk):
-        start = i * 10
-        end = (i + 1) * 10
-        if start < skip_count: start = skip_count
-        if end > issues_count: end = issues_count
+        start = i * 10 + 1
+        end = (i + 1) * 10 + 1
+        if start <= skip_count: start = skip_count + 1
+        if end > issues_count + 1: end = issues_count + 1
         try:
             jira_issues = source.get_issues(project_id, start, end)
             target.importIssues(project_id, project_id + " assignees",
@@ -242,6 +263,7 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
             for issue in jira_issues:
                 process_labels(target, issue)
                 process_attachments(source, target, issue)
+                process_worklog(source, target, issue)
         except YouTrackException, e:
             print(str(e))
 

@@ -36,7 +36,13 @@ class JiraClient(object):
             print "Can't get issue " + issue_id
             return None
 
-
+    def get_worklog(self, issue_id):
+        response, content = self._get(self._rest_url() + "/issue/" + issue_id + '/worklog')
+        if response.status == 200 :
+            return content
+        else:
+            print "Can't get worklog for issue " + issue_id
+            return None
 
     def _rest_url(self):
         return self._url + "/api/latest"

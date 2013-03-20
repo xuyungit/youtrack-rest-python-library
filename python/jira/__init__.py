@@ -33,7 +33,8 @@ FIELD_TYPES = {
     u'customfield_10051'        : u'date',
     u'customfield_10050'        : u'date',
     u'customfield_10156'        : u'string',
-    u'customfield_10154'        : u'string'
+    u'customfield_10154'        : u'string',
+    u'Estimation'               : u'period'
 }
 
 FIELD_NAMES = {
@@ -42,7 +43,8 @@ FIELD_NAMES = {
     u'versions': 'Affected versions',
     u'status' : 'State',
     u'issuetype' : 'Type',
-    u'resolutiondate' : 'resolved'
+    u'resolutiondate' : 'resolved',
+    u'timeoriginalestimate': 'Estimation'
 }
 
 EXISTING_FIELDS = ['numberInProject', 'projectShortName', 'summary', 'description', 'created',
