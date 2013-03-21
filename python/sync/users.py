@@ -2,6 +2,12 @@ import youtrack
 
 PROHIBITED = '/'
 
+def utf8encode(source):
+    if isinstance(source, unicode):
+        source = source.encode('utf-8')
+    return source
+
+
 class UserImporter(object):
     def __init__(self, source, target, caching_users=True):
         self.source = source
@@ -44,9 +50,9 @@ class UserImporter(object):
                 try:
                     self.createGroup(group)
                 except Exception, ex:
-                    print repr(ex).encode('utf-8')
+                    print utf8encode(repr(ex))
             self.target.setUserGroup(yt_user.login, group.name)
-            print "Set " + str(yt_user.login) + " to " + str(group.name)
+            print "Set " + utf8encode(yt_user.login) + " to " + utf8encode(group.name)
 
     def _import_user_batch_recursively(self, users):
         if not len(users): return 0
@@ -74,7 +80,7 @@ class UserImporter(object):
                 try:
                     self.createGroup(group)
                 except Exception, ex:
-                    print repr(ex).encode('utf-8')
+                    print utf8encode(repr(ex))
 
     def createGroup(self, group):
         group_roles = self.source.getGroupRoles(group.name)

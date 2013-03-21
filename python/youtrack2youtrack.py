@@ -2,6 +2,7 @@
 import sys
 from youtrack.connection import Connection, youtrack
 #from sets import Set
+import traceback
 
 #httplib2.debuglevel=4
 from sync.users import UserImporter
@@ -31,7 +32,7 @@ def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_imp
     # get all bundles of every field type. So here we'll do a hack: just check if there is a bundle of bundle_type
     # type with this name, if there is bundle of another type -- there will be conflict, and we'll just exit with
     # corresponding message, as we can't proceed import anyway
-    target_bundle_names = [bundle.name for bundle in target.getAllBundles(bundle_type)]
+    target_bundle_names = [bundle.name.strip() for bundle in target.getAllBundles(bundle_type)]
     if bundle_name in target_bundle_names:
         target_bundle = target.getBundle(bundle_type, bundle_name)
         if isinstance(source_bundle, youtrack.UserBundle):
@@ -52,7 +53,7 @@ def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_imp
             return
         target_value_names = [element.name.encode('utf-8').capitalize() for element in target_bundle.values]
         for value in [elem for elem in source_bundle.values if
-                      elem.name.encode('utf-8').capitalize() not in target_value_names]:
+                      elem.name.encode('utf-8').strip().capitalize() not in target_value_names]:
             target.addValueToBundle(target_bundle, value)
     else:
         users = set([])
@@ -243,7 +244,8 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
 
             except Exception, e:
                 print('Cant process issues from ' + str(start) + ' to ' + str(start + max))
-                print e
+                traceback.print_exc()
+                raise e
 
             start += max
 
