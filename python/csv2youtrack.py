@@ -113,7 +113,7 @@ class CsvYouTrackImportConfig(YouTrackImportConfig):
         return str(calendar.timegm(dt.timetuple()) * 1000)
 
     def get_project_id_key(self):
-        return u'project_name'
+        return u'project_id'
 
     def get_project_name_key(self):
         return u'project_name'
@@ -122,7 +122,7 @@ class CsvYouTrackImportConfig(YouTrackImportConfig):
         project_name_key = self.get_key_for_field_name(self.get_project_name_key())
         project_id_key = self.get_key_for_field_name(self.get_project_id_key())
         project_name = issue[project_name_key]
-        project_id = re.sub(r'[^A-Za-z0-9]+', "", issue[project_id_key])
+        project_id = issue.get(project_id_key, re.sub(r'\W+', "", project_name))
         return project_id, project_name
 
     def get_field_info(self, field_name):

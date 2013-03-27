@@ -2,6 +2,7 @@ import csvClient
 
 csvClient.FIELD_NAMES = {
     "Project"       :   "project_name",
+    "Project Id"    :   "project_id",
     "Summary"       :   "summary",
     "Reporter"      :   "reporterName",
     "Created"       :   "created",
@@ -31,5 +32,4 @@ csvClient.FIELD_TYPES = {
 
 
 csvClient.CSV_DELIMITER = ","
-csvClient.GENERATE_ID_FOR_ISSUES = False
 csvClient.DATE_FORMAT_STRING = "%A, %B %d, %Y %I:%M:%S %p %z"
