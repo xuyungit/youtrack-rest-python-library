@@ -823,7 +823,6 @@ class Connection(object):
                             params[e] = value[e]
                 if len(params):
                     request += urllib.urlencode(params)
-            print request
         else:
             request = "/admin/customfield/userBundle/%s/" % urlquote(bundle.name.encode('utf-8'))
             if isinstance(value, youtrack.User):
