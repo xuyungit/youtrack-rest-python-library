@@ -43,6 +43,9 @@ class YouTrackException(Exception):
                     self.error = content
                     msg += ": " + self.error
 
+        if isinstance(msg, unicode):
+            msg = msg.encode('utf-8')
+
         Exception.__init__(self, msg)
 
 

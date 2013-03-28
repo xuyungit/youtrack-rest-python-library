@@ -14,6 +14,10 @@ from youtrack.importHelper import create_bundle_safe
 from datetime import datetime
 
 
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+sys.stderr = sys.stdout
+
+
 CHUNK_SIZE = 100
 
 
@@ -460,8 +464,9 @@ class RedmineImporter(object):
                         field_type.startswith('ownedField')):
                     value = value.name
             self._target.addValueToBundle(bundle, value)
-        except youtrack.YouTrackException:
-            pass
+        except youtrack.YouTrackException, e:
+            if e.response.status != 409 or e.response.reason.lower() != 'conflict':
+                print e
 
     def _get_value_presentation(self, field_type, value):
         if field_type == 'date':
