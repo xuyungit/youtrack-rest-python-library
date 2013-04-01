@@ -762,8 +762,32 @@ class Connection(object):
     def importWorkItems(self, issue_id, work_items):
         for wi in work_items:
             self.createWorkItem(issue_id, wi)
-       
 
+    def getSearchIntelliSense(self, query,
+                              context=None, caret=None, options_limit=None):
+        opts = {'filter': query}
+        if context:
+            opts['project'] = context
+        if caret is not None:
+            opts['caret'] = caret
+        if options_limit is not None:
+            opts['optionsLimit'] = options_limit
+        return youtrack.IntelliSense(
+            self._get('/issue/intellisense?' + urllib.urlencode(opts)), self)
+
+    def getCommandIntelliSense(self, issue_id, command,
+                               run_as=None, caret=None, options_limit=None):
+        opts = {'command': command}
+        if run_as:
+            opts['runAs'] = run_as
+        if caret is not None:
+            opts['caret'] = caret
+        if options_limit is not None:
+            opts['optionsLimit'] = options_limit
+        return youtrack.IntelliSense(
+            self._get('/issue/%s/execute/intellisense?%s'
+                      % (issue_id, urllib.urlencode(opts))), self)
+       
     def getAllBundles(self, field_type):
         field_type = self.get_field_type(field_type)
         if field_type == "enum":
@@ -886,7 +910,3 @@ class Connection(object):
         "version": lambda xml, yt: youtrack.VersionBundle(xml, yt),
         "user": lambda xml, yt: youtrack.UserBundle(xml, yt)
     }
-
-
-
-    

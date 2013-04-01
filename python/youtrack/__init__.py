@@ -586,3 +586,45 @@ class VersionField(BundleElement):
         self.released = xml.getAttribute("released").lower() == "true"
         self.archived = xml.getAttribute("archived").lower() == "true"
 
+
+class IntelliSense(YouTrackObject):
+    def __init__(self, xml=None, youtrack=None):
+        self.suggestions = []
+        self.highlights = []
+        self.queries = []
+        YouTrackObject.__init__(self, xml, youtrack)
+
+    def _update(self, xml):
+        if not xml:
+            return
+        if isinstance(xml, Document):
+            xml = xml.documentElement
+        for c in xml.childNodes:
+            if c.tagName in ('suggest', 'recent'):
+                for item in c.getElementsByTagName('item'):
+                    suggest = {}
+                    for i in item.childNodes:
+                        if i.tagName in ('completion', 'match'):
+                            suggest[i.tagName] = {
+                                'start': int(i.getAttribute('start')),
+                                'end': int(i.getAttribute('end'))}
+                        else:
+                            if i.tagName == 'caret':
+                                suggest[i.tagName] = int(self._text(i))
+                            else:
+                                suggest[i.tagName] = self._text(i)
+                    if 'option' not in suggest:
+                        continue
+                    if c.tagName == 'suggest':
+                        self.suggestions.append(suggest)
+                    else:
+                        self.queries.append(suggest)
+            elif c.tagName == 'highlight':
+                for item in c.getElementsByTagName('range'):
+                    rng = {}
+                    for i in item.childNodes:
+                        if i.tagName in ('start', 'end'):
+                            rng[i.tagName] = int(self._text(i))
+                        else:
+                            rng[i.tagName] = self._text(i)
+                    self.highlights.append(rng)
