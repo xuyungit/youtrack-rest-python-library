@@ -80,7 +80,7 @@ def get_yt_field_value(yt_field_name, field_type, mantis_value):
         if mantis_value in values_map:
             mantis_value = values_map[mantis_value]
         return mantis_value.replace("/", " ")
-    if isinstance(mantis_value, int):
+    if isinstance(mantis_value, int) or isinstance(mantis_value, long):
         if mantis_value in values_map:
             mantis_value = values_map[mantis_value]
         return str(mantis_value)
