@@ -424,7 +424,7 @@ def trac2youtrack(target_url, target_login, target_password, project_ID, project
                 else:
                     attach.author_name = yt_user
             content = open(urllib.quote(attach.filename.encode('utf-8')))
-            target.createAttachment(str(project_ID) + "-" + str(issue.id), attach.filename, content, attach.author_name,
+            target.createAttachment(str(project_ID) + "-" + str(issue.id), attach.name, content, attach.author_name,
                                     created=attach.time)
     print "Importing attachments finished"
 

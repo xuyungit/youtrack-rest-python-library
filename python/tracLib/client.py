@@ -1,4 +1,5 @@
 from trac.env import Environment
+from trac.attachment import Attachment
 from tracLib import *
 from ConfigParser import ConfigParser
 import tracLib
@@ -153,9 +154,10 @@ class Client(object):
             attachment_cursor = self.db_cnx.cursor()
             attachment_cursor.execute("SELECT filename, size, time, description, author FROM attachment WHERE "
                                       "type = %s AND id = %s", ("ticket", str(issue.id)))
-            path = self.env_path + "/attachments/ticket/" + str(issue.id) + "/"
+            #path = self.env_path + "/attachments/ticket/" + str(issue.id) + "/"
             for elem in attachment_cursor:
-                at = TracAttachment(path + elem[0])
+                #at = TracAttachment(path + elem[0])
+                at = TracAttachment(Attachment._get_path(self.env.path, 'ticket', str(issue.id), elem[0]))
                 at.name = elem[0]
                 at.size = elem[1]
                 at.time = self.to_unix_time(elem[2])
