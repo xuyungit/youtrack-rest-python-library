@@ -740,11 +740,16 @@ class Connection(object):
                                            'directed': directed}))
 
     def getWorkItems(self, issue_id):
-        response, content = self._req('GET',
-            '/issue/%s/timetracking/workitem' % urlquote(issue_id))
-        xml = minidom.parseString(content)
-        return [youtrack.WorkItem(e, self) for e in xml.documentElement.childNodes if
-                e.nodeType == Node.ELEMENT_NODE]
+        try:
+            response, content = self._req('GET',
+                '/issue/%s/timetracking/workitem' % urlquote(issue_id))
+            xml = minidom.parseString(content)
+            return [youtrack.WorkItem(e, self) for e in xml.documentElement.childNodes if
+                    e.nodeType == Node.ELEMENT_NODE]
+        except youtrack.YouTrackException, e:
+            print "Can't get work items.", str(e)
+            return []
+
 
     def createWorkItem(self, issue_id, work_item):
         xml =  '<workItem>'
