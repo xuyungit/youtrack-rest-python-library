@@ -1,4 +1,7 @@
+#! /usr/bin/env python
+
 # migrate project from youtrack to youtrack
+import os
 import sys
 from youtrack.connection import Connection, youtrack
 #from sets import Set
@@ -8,23 +11,68 @@ import traceback
 from sync.users import UserImporter
 from sync.links import LinkImporter
 
+import re
+import getopt
+
+convert_period_values = False
+days_in_a_week = 5
+hours_in_a_day = 8
+
+
+def usage():
+    print """
+Usage:
+    %s [-p] [-t TIME_SETTINGS] s_url s_user s_pass t_url t_user t_pass [project_id ...]
+
+    s_url         Source YouTrack URL
+    s_user        Source YouTrack user
+    s_pass        Source YouTrack user's password
+    t_url         Target YouTrack URL
+    t_user        Target YouTrack user
+    t_pass        Target YouTrack user's password
+    project_id    ProjectID to import
+
+Options:
+    -h,  Show this help and exit
+    -p,  Covert period values (used as workaroud for JT-19362)
+    -t,  Time Tracking settings in format "days_in_a_week:hours_in_a_day"
+""" % os.path.basename(sys.argv[0])
+
 def main():
+    global convert_period_values
+    global days_in_a_week
+    global hours_in_a_day
     try:
-        source_url, source_login, source_password, target_url, target_login, target_password = sys.argv[1:7]
-#        source_url = "http://localhost:8080"
-#        source_login = "root"
-#        source_password = "root"
-#        target_url = "http://localhost:8081"
-#        target_login = "root"
-#        target_password = "root"
-        project_ids = sys.argv[7:]
-        #project_ids = ['JT']
-    except BaseException, e:
-        print "Usage: youtrack2youtrack source_url source_login source_password target_url target_login target_password projectId"
-        return
-
-    youtrack2youtrack(source_url, source_login, source_password, target_url, target_login, target_password, project_ids)
-
+        params = {}
+        opts, args = getopt.getopt(sys.argv[1:], 'hpt:')
+        for opt, val in opts:
+            if opt == '-h':
+                usage()
+                sys.exit(0)
+            if opt == '-p':
+                convert_period_values = True
+            elif opt == '-t':
+                if ':' in val:
+                    d, h = val.split(':')
+                    if d:
+                        days_in_a_week = int(d)
+                    if h:
+                        hours_in_a_day = int(h)
+                else:
+                    days_in_a_week = int(val)
+        (source_url, source_login, source_password,
+         target_url, target_login, target_password) = args[:6]
+        project_ids = args[6:]
+    except getopt.GetoptError, e:
+        print e
+        usage()
+        sys.exit(1)
+    except ValueError, e:
+        print 'Not enough arguments'
+        usage()
+        sys.exit(1)
+    youtrack2youtrack(source_url, source_login, source_password,
+                      target_url, target_login, target_password, project_ids)
 
 def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_importer):
     source_bundle = source.getBundle(bundle_type, bundle_name)
@@ -92,6 +140,20 @@ def create_project_stub(source, target, projectId, user_importer):
 
     return target.getProject(projectId)
 
+def period_to_minutes(value):
+    minutes = 0
+    for period in re.findall('\d+[wdhm]', value):
+        punit = period[-1]
+        pvalue = int(period[:-1])
+        if punit == 'm':
+            minutes += pvalue
+        elif punit == 'h':
+            minutes += pvalue * 60
+        elif punit == 'd':
+            minutes += pvalue * hours_in_a_day * 60
+        elif punit == 'w':
+            minutes += pvalue * days_in_a_week * hours_in_a_day * 60
+    return str(minutes)
 
 
 def youtrack2youtrack(source_url, source_login, source_password, target_url, target_login, target_password,
@@ -132,8 +194,13 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
 
     target_cf_names = [pcf.name.capitalize() for pcf in target.getCustomFields()]
 
+    period_cf_names = []
+
     for cf_name in cf_names_to_import:
         source_cf = source.getCustomField(cf_name)
+        if source_cf.type.lower() == 'period':
+            period_cf_names.append(source_cf.name.lower())
+
         if cf_name in target_cf_names:
             target_cf = target.getCustomField(cf_name)
             if not(target_cf.type == source_cf.type):
@@ -191,6 +258,14 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
 
                 if len(issues) <= 0:
                     break
+
+                if convert_period_values and period_cf_names:
+                    for issue in issues:
+                        for pname in period_cf_names:
+                            for fname in issue.__dict__:
+                                if fname.lower() != pname:
+                                    continue
+                                issue[fname] = period_to_minutes(issue[fname])
 
                 users = set([])
 
