@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import urllib2
 from youtrack.connection import Connection
 from mantis.mantisClient import MantisClient
@@ -79,7 +81,9 @@ def get_yt_field_value(yt_field_name, field_type, mantis_value):
     if isinstance(mantis_value, str) or isinstance(mantis_value, unicode):
         if mantis_value in values_map:
             mantis_value = values_map[mantis_value]
-        return mantis_value.replace("/", " ")
+        if yt_field_name not in ('summary', 'description'):
+            mantis_value = mantis_value.replace("/", " ")
+        return mantis_value
     if isinstance(mantis_value, int) or isinstance(mantis_value, long):
         if mantis_value in values_map:
             mantis_value = values_map[mantis_value]
