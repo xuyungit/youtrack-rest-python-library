@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 from string import capitalize
 import urllib
 from youtrack.connection import Connection
