@@ -324,6 +324,8 @@ class Connection(object):
                 attrValue = issue[issueAttr]
                 if attrValue is None:
                     continue
+                if isinstance(attrValue, unicode):
+                    attrValue = attrValue.encode('utf-8')
                 if issueAttr == 'comments':
                     comments = attrValue
                 else:
@@ -332,7 +334,10 @@ class Connection(object):
                                          'updatedByFullName', 'reporterFullName', 'links', 'attachments', 'jiraId']:
                         record += '    <field name="' + issueAttr + '">\n'
                         if isinstance(attrValue, list) or getattr(attrValue, '__iter__', False):
-                            record += "".join('      <value>' + escape(v) + '</value>\n' for v in attrValue)
+                            for v in attrValue:
+                                if isinstance(v, unicode):
+                                    v = v.encode('utf-8')
+                                record += '      <value>' + escape(v) + '</value>\n'
                         else:
                             record += '      <value>' + escape(attrValue) + '</value>\n'
                         record += '    </field>\n'

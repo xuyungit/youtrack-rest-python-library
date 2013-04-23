@@ -79,6 +79,8 @@ class YouTrackObject(object):
                 name = c.getAttribute('name')
                 if not len(name):
                     continue
+                if isinstance(name, unicode):
+                    name = name.encode('utf-8')
                 values = c.getElementsByTagName('value')
                 if (values is not None) and len(values):
                     if values.length == 1:
@@ -87,14 +89,22 @@ class YouTrackObject(object):
                         setattr(self, name, [self._text(value) for value in values])
                 elif c.hasAttribute('value'):
                     value = c.getAttribute("value")
-                    setattr(self, name.encode('utf-8'), value)
+                    setattr(self, name, value)
 
     def _text(self, el):
         return "".join([e.data for e in el.childNodes if e.nodeType == Node.TEXT_NODE])
 
     def __repr__(self):
-        return "".join(
-            [(k + ' = ' + unicode(self.__dict__[k]) + '\n') for k in self.__dict__.iterkeys() if k != 'youtrack'])
+        _repr = ''
+        for k, v in self.__dict__.items():
+            if k == 'youtrack':
+                continue
+            if isinstance(k, unicode):
+                k = k.encode('utf-8')
+            if isinstance(v, unicode):
+                v = v.encode('utf-8')
+            _repr += k + ' = ' + str(v) + '\n'
+        return _repr
 
     def __iter__(self):
         for item in self.__dict__:
@@ -479,10 +489,17 @@ class BundleElement(YouTrackObject):
 
     def toXml(self):
         result = '<' + self.element_name
-        result += ''.join(
-            " " + elem + '="' + self[elem] + '"' for elem in self if elem not in ["name", "element_name"] and (
-            self[elem] is not None) and (
-                len(self[elem]) != 0))
+        for elem in self:
+            if elem in ("name", "element_name"):
+                continue
+            value = self[elem]
+            if value is None or not len(value):
+                continue
+            if isinstance(elem, unicode):
+                elem = elem.encode('utf-8')
+            if isinstance(value, unicode):
+                value = value.encode('utf-8')
+            result += ' %s="%s"' % (elem, str(value))
         result += ">%s</%s>" % (self.name.encode('utf-8'), self.element_name)
         return result
 
