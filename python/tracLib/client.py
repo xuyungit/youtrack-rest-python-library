@@ -169,7 +169,7 @@ class Client(object):
             change_cursor = self.db_cnx.cursor()
             change_cursor.execute("SELECT time, author, newvalue, oldvalue FROM ticket_change WHERE ticket = %s AND field = %s ORDER BY time DESC", (str(row[0]), "comment",))
             for elem in change_cursor:
-                if (elem[2] is None) or (not len(elem[2])):
+                if (elem[2] is None) or (not len(elem[2].lstrip())):
                     continue
                 comment = TracComment(self.to_unix_time(elem[0]))
                 comment.author = str(elem[1])
