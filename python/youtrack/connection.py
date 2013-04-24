@@ -326,6 +326,8 @@ class Connection(object):
                     continue
                 if isinstance(attrValue, unicode):
                     attrValue = attrValue.encode('utf-8')
+                if isinstance(issueAttr, unicode):
+                    issueAttr = issueAttr.encode('utf-8')
                 if issueAttr == 'comments':
                     comments = attrValue
                 else:
@@ -344,8 +346,15 @@ class Connection(object):
 
             if comments:
                 for comment in comments:
-                    record += '    <comment ' + "".join(
-                        ca + '=' + quoteattr(comment[ca]) + ' ' for ca in comment) + '/>\n'
+                    record += '    <comment'
+                    for ca in comment:
+                        val = comment[ca]
+                        if isinstance(ca, unicode):
+                            ca = ca.encode('utf-8')
+                        if isinstance(val, unicode):
+                            val = val.encode('utf-8')
+                        record += ' ' + ca + '=' + quoteattr(val)
+                    record += '/>\n'
 
             record += '  </issue>\n'
             xml += record
