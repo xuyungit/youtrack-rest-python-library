@@ -13,7 +13,7 @@ import urllib2_file
 import tempfile
 
 def urlquote(s):
-    return urllib.quote(s, safe="")
+    return urllib.quote(utf8encode(s), safe="")
 
 def utf8encode(source):
     if isinstance(source, unicode):

@@ -150,11 +150,14 @@ class Issue(YouTrackObject):
 
     def _normilizeMultiple(self, name):
         if hasattr(self, name):
-            if not isinstance(self[name], list):
-                if self[name] == '' or self[name] is None:
+            attrValue = self[name]
+            if not isinstance(attrValue, list):
+                if isinstance(attrValue, unicode):
+                    attrValue = attrValue.encode('utf-8')
+                if attrValue is None or not len(attrValue):
                     delattr(self, name)
                 else:
-                    self[name] = [value.strip() for value in str(self[name]).split(',')]
+                    self[name] = [value.strip() for value in attrValue.split(',')]
 
     def getReporter(self):
         return self.youtrack.getUser(self.reporterName)
@@ -260,7 +263,7 @@ class Attachment(YouTrackObject):
         self.url = re.sub(r'^.*?(?=/_persistent)', '', self.url)
 
     def getContent(self):
-        return self.youtrack.getAttachmentContent(self.url.encode('utf8'))
+        return self.youtrack.getAttachmentContent(self.url.encode('utf-8'))
 
     def getAuthor(self):
         if self.authorLogin == '<no user>':
