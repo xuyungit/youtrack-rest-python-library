@@ -333,7 +333,7 @@ class Connection(object):
                 else:
                     # ignore bad fields from getIssue()
                     if issueAttr not in ['id', 'projectShortName', 'votes', 'commentsCount', 'historyUpdated',
-                                         'updatedByFullName', 'reporterFullName', 'links', 'attachments', 'jiraId']:
+                                         'updatedByFullName', 'updaterFullName', 'reporterFullName', 'links', 'attachments', 'jiraId']:
                         record += '    <field name="' + issueAttr + '">\n'
                         if isinstance(attrValue, list) or getattr(attrValue, '__iter__', False):
                             for v in attrValue:
@@ -633,7 +633,8 @@ class Connection(object):
             urllib.urlencode(params))
 
     def getIssues(self, projectId, filter, after, max):
-        response, content = self._req('GET', '/project/issues/' + urlquote(projectId) + "?" +
+        #response, content = self._req('GET', '/project/issues/' + urlquote(projectId) + "?" +
+        response, content = self._req('GET', '/issue/byproject/' + urlquote(projectId) + "?" +
                                              urllib.urlencode({'after': str(after),
                                                                'max': str(max),
                                                                'filter': filter}))

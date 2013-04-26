@@ -171,6 +171,18 @@ class Issue(YouTrackObject):
     def getUpdater(self):
         return self.youtrack.getUser(self.updaterName)
 
+    def hasVoters(self):
+        return getattr(self, 'voterName', None) is not None
+
+    def getVoters(self):
+        voters = self.voterName
+        if voters:
+            if isinstance(voters, list):
+                voters = [self.youtrack.getUser(v) for v in voters]
+            else:
+                voters = [self.youtrack.getUser(voters)]
+        return voters
+
     def getComments(self):
         #TODO: do not make rest request if issue was initied with comments
         if not hasattr(self, 'comments'):
