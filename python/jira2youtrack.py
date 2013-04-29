@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import calendar
 import sys
+import re
 import datetime
 import urllib
 import urllib2
@@ -174,25 +175,26 @@ def create_value(target, value, field_name, field_type, project_id):
     except YouTrackException:
         pass
 
-
 def to_unix_date(time_string, truncate=False):
+    tz_diff = 0
     if len(time_string) == 10:
-        #just date
         dt = datetime.datetime.strptime(time_string, '%Y-%m-%d')
-        tz_diff = 0
     else:
-        time = time_string[:time_string.rfind('.')].replace('T', ' ')
-        time_zone = time_string[-5:]
-        tz_diff = 1
-        if time_zone[0] == '-':
-            tz_diff = -1
-        tz_diff *= (int(time_zone[1:3]) * 60 + int(time_zone[3:5]))
-        dt = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
-        epoch = calendar.timegm(dt.timetuple()) + tz_diff
-        if truncate:
-            epoch = int(epoch / 86400) * 86400
+        m = re.search('(Z|([+-])(\d\d):?(\d\d))$', time_string)
+        if m:
+            tzm = m.groups()
+            time_string = time_string[0:-len(tzm[0])]
+            if tzm[0] != 'Z':
+                tz_diff = int(tzm[2]) * 60 + int(tzm[3])
+                if tzm[1] == '-':
+                    tz_diff = -tz_diff
+        time_string = re.sub('\.\d+$', '', time_string).replace('T', ' ')
+        print time_string
+        dt = datetime.datetime.strptime(time_string, '%Y-%m-%d %H:%M:%S')
+    epoch = calendar.timegm(dt.timetuple()) + tz_diff
+    if truncate:
+        epoch = int(epoch / 86400) * 86400
     return str(epoch * 1000)
-
 
 def get_value_presentation(field_type, value):
     if field_type == 'date':
@@ -268,10 +270,10 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
             print(str(e))
 
     for i in range(first_chunk, last_chunk):
-        start = i * 10
-        end = (i + 1) * 10
-        if start < skip_count: start = skip_count
-        if end > issues_count: end = issues_count
+        start = i * 10 + 1
+        end = (i + 1) * 10 + 1
+        if start <= skip_count: start = skip_count + 1
+        if end > issues_count + 1: end = issues_count + 1
         jira_issues = source.get_issues(project_id, start, end)
         links = []
         for issue in jira_issues:
