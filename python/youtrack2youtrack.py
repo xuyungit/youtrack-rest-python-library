@@ -309,13 +309,13 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                     user_importer.importUsersRecursively(users)
 
                     for a in attachments:
-                        print "Transfer attachment of " + issue.id + ": " + a.name
+                        print "Transfer attachment of " + issue.id.encode('utf-8') + ": " + a.name.encode('utf-8')
                         # TODO: add authorLogin to workaround http://youtrack.jetbrains.net/issue/JT-6082
                         a.authorLogin = target_login
                         try:
                             target.createAttachmentFromAttachment(issue.id, a)
                         except BaseException, e:
-                            print("Cant import attachment [ %s ]" % a.name)
+                            print("Cant import attachment [ %s ]" % a.name.encode('utf-8'))
                             print repr(e)
 
             except Exception, e:
