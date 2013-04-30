@@ -285,7 +285,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
 
                     # fix problem with comment.text
                     for comment in issue.getComments():
-                        if not hasattr(comment, "text") or (len(comment.text) == 0):
+                        if not hasattr(comment, "text") or (len(comment.text.strip()) == 0):
                             setattr(comment, 'text', 'no text')
 
                 user_importer.importUsersRecursively(users)
