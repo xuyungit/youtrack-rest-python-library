@@ -20,7 +20,9 @@ class Client(object):
         result = self.env.get_known_users()
         trac_users = list([])
         for user in result:
-            user_login = user[0]
+            user_login = user[0].lower()
+            if user_login in self._registered_users_logins:
+                continue
             u = TracUser(user_login)
             u.email = user[2]
             trac_users.append(u)
@@ -39,11 +41,11 @@ class Client(object):
                 first = False
             else:
                 request += "UNION "
-            request += "SELECT DISTINCT %s FROM %s " % (column_name, table_name)
+            request += "SELECT DISTINCT lower(%s) FROM %s " % (column_name, table_name)
         cursor = self.db_cnx.cursor()
         cursor.execute(request)
         for row in cursor:
-            if row[0] not in self._registered_users_logins :
+            if row[0] not in self._registered_users_logins:
                 trac_user = self._get_non_authorised_user(row[0])
                 if trac_user is not None :
                     trac_users.append(trac_user)
