@@ -71,7 +71,7 @@ tracLib.FIELD_NAMES = {
 
 
 # the default email to register users who doesn't have one
-tracLib.DEFAULT_EMAIL = "anna.zhdan@gmail.com"
+tracLib.DEFAULT_EMAIL = "user@server.com"
 # if true users who were not authorized are registered
 # else they are known as guests
 tracLib.ACCEPT_NON_AUTHORISED_USERS = True
