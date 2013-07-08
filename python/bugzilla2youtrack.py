@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import calendar
 import youtrack
 from youtrack.connection import Connection
@@ -197,7 +199,7 @@ def process_components(components, project_id, target):
             if isinstance(new_component, OwnedField):
                 if c.initial_owner is not None:
                     import_single_user(c.initial_owner, target)
-                    new_component.owner = c.initial_owner.login
+                    new_component.login = c.initial_owner.login
             try:
                 target.addValueToBundle(bundle, new_component)
             except YouTrackException:
@@ -338,7 +340,7 @@ def bugzilla2youtrack(target_url, target_login, target_pass, bz_db, bz_host, bz_
     links_to_import = list([])
     for link in links:
         print "Processing link %s for issue%s" % (link.name, link.source)
-        if (link.target_product_id in bz_product_ids) and (link.source_product_id in bz_product_ids):
+        if (str(link.target_product_id) in bz_product_ids) and (str(link.source_product_id) in bz_product_ids):
             links_to_import.append(to_yt_issue_link(link))
     print target.importLinks(links_to_import)
     print "Importing issue links finished"
