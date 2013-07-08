@@ -251,19 +251,28 @@ class Client(object):
         return result
 
     def get_attachments_by_id(self, bug_id):
+        def get_attach_data_table():
+            cursor = self.sql_cnx.cursor()
+            cursor.execute("show tables like 'attach_data'")
+            if cursor.fetchone():
+                return 'attach_data'
+            return 'attachments'
         result = list([])
         cursor = self.sql_cnx.cursor()
         id_row = 'attach_id'
         created_row = 'creation_ts'
         filename_row = 'filename'
         submitter_row = 'submitter_id'
+        attach_data_table = get_attach_data_table()
         request = "SELECT %s, %s, %s, %s " % (id_row, created_row, filename_row, submitter_row)
         request += "FROM attachments WHERE bug_id = %s" % str(bug_id)
         cursor.execute(request)
+        if attach_data_table == 'attach_data':
+            id_row = 'id'
         for row in cursor:
             file_cursor = self.sql_cnx.cursor()
             data_row = 'thedata'
-            file_request = "SELECT %s FROM attach_data WHERE id = %s" % (data_row, str(row[id_row]))
+            file_request = "SELECT %s FROM %s WHERE %s = %s" % (data_row, attach_data_table, id_row, str(row[id_row]))
             file_cursor.execute(file_request)
             attach_row = file_cursor.fetchone()
             if attach_row is None:
