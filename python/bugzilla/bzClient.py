@@ -264,15 +264,14 @@ class Client(object):
         filename_row = 'filename'
         submitter_row = 'submitter_id'
         attach_data_table = get_attach_data_table()
+        attach_data_table_id_row = 'id' if attach_data_table == 'attach_data' else 'attach_id'
         request = "SELECT %s, %s, %s, %s " % (id_row, created_row, filename_row, submitter_row)
         request += "FROM attachments WHERE bug_id = %s" % str(bug_id)
         cursor.execute(request)
-        if attach_data_table == 'attach_data':
-            id_row = 'id'
         for row in cursor:
             file_cursor = self.sql_cnx.cursor()
             data_row = 'thedata'
-            file_request = "SELECT %s FROM %s WHERE %s = %s" % (data_row, attach_data_table, id_row, str(row[id_row]))
+            file_request = "SELECT %s FROM %s WHERE %s = %s" % (data_row, attach_data_table, attach_data_table_id_row, str(row[id_row]))
             file_cursor.execute(file_request)
             attach_row = file_cursor.fetchone()
             if attach_row is None:
