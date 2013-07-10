@@ -9,7 +9,12 @@ from StringIO import StringIO
 import bugzilla.defaultBzMapping
 import bugzilla
 import sys
+import os
 from youtrack.importHelper import create_custom_field, process_custom_field
+
+# Enable unbuffered output
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 0)
 
 def main():
 #    target_url = "http://localhost:8081"
@@ -163,7 +168,7 @@ def to_yt_issue(bz_issue, project_id, target):
     if "comments" in bz_issue:
         for comment in bz_issue["comments"]:
             yt_comment = to_yt_comment(comment, target)
-            if yt_comment is not None:
+            if yt_comment is not None and yt_comment.text.lstrip() != '':
                 issue.comments.append(yt_comment)
     return issue
 
