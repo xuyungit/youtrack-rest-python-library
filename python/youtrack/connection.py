@@ -772,7 +772,6 @@ class Connection(object):
         xml += '<duration>%s</duration>' % work_item.duration
         if hasattr(work_item, 'description') and work_item.description is not None:
             xml += '<description>%s</description>' % escape(work_item.description)
-        xml += '<author login=%s></author>' % quoteattr(work_item.authorLogin)
         xml += '</workItem>'
         if isinstance(xml, unicode):
             xml = xml.encode('utf-8')
@@ -780,8 +779,21 @@ class Connection(object):
             '/issue/%s/timetracking/workitem' % urlquote(issue_id), xml)
 
     def importWorkItems(self, issue_id, work_items):
-        for wi in work_items:
-            self.createWorkItem(issue_id, wi)
+        xml = ''
+        for work_item in work_items:
+            xml +=  '<workItem>'
+            xml += '<date>%s</date>' % work_item.date
+            xml += '<duration>%s</duration>' % work_item.duration
+            if hasattr(work_item, 'description') and work_item.description is not None:
+                xml += '<description>%s</description>' % escape(work_item.description)
+            xml += '<author login=%s></author>' % quoteattr(work_item.authorLogin)
+            xml += '</workItem>'
+            if isinstance(xml, unicode):
+                xml = xml.encode('utf-8')
+        if xml:
+            xml = '<workItems>' + xml + '</workItems>'
+            self._reqXml('PUT',
+                '/import/issue/%s/workitems' % urlquote(issue_id), xml)
 
     def getSearchIntelliSense(self, query,
                               context=None, caret=None, options_limit=None):

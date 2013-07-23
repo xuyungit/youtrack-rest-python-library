@@ -357,6 +357,7 @@ class RedmineImporter(object):
                 self._collect_relations(issue)
                 self._add_attachments(issue)
                 if self._params.get('import_time_entries', False):
+                    self._enable_timetracking(project)
                     self._add_work_items(issue)
             offset += limit
 
@@ -518,7 +519,11 @@ class RedmineImporter(object):
                 comment.created = str(to_unixtime(rec.created_on))
                 issue['comments'].append(comment)
 
+    def _enable_timetracking(self, project):
+        self._target.setProjectTimeTrackingSettings(project.identifier, enabled=True)
+
     def _add_work_items(self, issue):
+        import_data = []
         work_items = self._source.get_time_entries(issue.id)
         for t in sorted(work_items, key=lambda t: t.spent_on):
             work_item = youtrack.WorkItem()
@@ -526,7 +531,9 @@ class RedmineImporter(object):
             work_item.date = str(to_unixtime(t.spent_on))
             work_item.description = t.comments
             work_item.duration = int(float(t.hours) * 60)
-            self._target.createWorkItem(self._get_yt_issue_id(issue), work_item)
+            import_data.append(work_item)
+        if import_data:
+            self._target.importWorkItems(self._get_yt_issue_id(issue), import_data)
 
     def _add_attachments(self, issue):
         if not hasattr(issue, 'attachments'):
