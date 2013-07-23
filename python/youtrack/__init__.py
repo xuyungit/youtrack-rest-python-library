@@ -109,8 +109,8 @@ class YouTrackObject(object):
     def __iter__(self):
         for item in self.__dict__:
             attr = self.__dict__[item]
-            if isinstance(attr, str) or isinstance(attr, unicode) or isinstance(attr, list) or getattr(attr, '__iter__',
-                False):
+            if isinstance(attr, basestring) or isinstance(attr, list) \
+            or getattr(attr, '__iter__', False):
                 yield item
 
     def __getitem__(self, key):
@@ -660,3 +660,27 @@ class IntelliSense(YouTrackObject):
                         else:
                             rng[i.tagName] = self._text(i)
                     self.highlights.append(rng)
+
+
+class GlobalTimeTrackingSettings(YouTrackObject):
+    def _update(self, xml):
+        if not xml:
+            return
+        if isinstance(xml, Document):
+            xml = xml.documentElement
+        for e in xml.childNodes:
+            self[e.tagName] = self._text(e)
+
+
+class ProjectTimeTrackingSettings(YouTrackObject):
+    def _update(self, xml):
+        if not xml:
+            return
+        if isinstance(xml, Document):
+            xml = xml.documentElement
+        self['Enabled'] = xml.getAttribute('enabled').lower() == 'true'
+        for e in xml.childNodes:
+            if e.tagName.lower() == 'estimation':
+                self['EstimateField'] = e.getAttribute('name')
+            elif e.tagName.lower() == 'spenttime':
+                self['TimeSpentField'] = e.getAttribute('name')

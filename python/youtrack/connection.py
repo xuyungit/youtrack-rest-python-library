@@ -36,7 +36,7 @@ class Connection(object):
         response, content = self.http.request(
             self.baseUrl + "/user/login?login=" + urllib.quote_plus(login) + "&password=" + urllib.quote_plus(password),
             'POST',
-            headers={'Content-Length': '0'})
+            headers={'Content-Length': '0', 'Connection': 'keep-alive'})
         if response.status != 200:
             raise youtrack.YouTrackException('/user/login', response, content)
         self.headers = {'Cookie': response['set-cookie'],
@@ -807,7 +807,38 @@ class Connection(object):
         return youtrack.IntelliSense(
             self._get('/issue/%s/execute/intellisense?%s'
                       % (issue_id, urllib.urlencode(opts))), self)
-       
+
+    def getGlobalTimeTrackingSettings(self):
+        return youtrack.GlobalTimeTrackingSettings(
+            self._get('/admin/timetracking'), self)
+
+    def getProjectTimeTrackingSettings(self, projectId):
+        return youtrack.ProjectTimeTrackingSettings(
+            self._get('/admin/project/' + projectId + '/timetracking'), self)
+
+    def setGlobalTimeTrackingSettings(self, daysAWeek=None, hoursADay=None):
+        xml = '<timesettings>'
+        if daysAWeek is not None:
+            xml += '<daysAWeek>%d</daysAWeek>' % daysAWeek
+        if hoursADay is not None:
+            xml += '<hoursADay>%d</hoursADay>' % hoursADay
+        xml += '</timesettings>'
+        return self._reqXml('PUT', '/admin/timetracking', xml)
+
+    def setProjectTimeTrackingSettings(self,
+        projectId, estimateField=None, timeSpentField=None, enabled=None):
+        if enabled is not None:
+            xml = '<settings enabled="%s">' % str(enabled == True).lower()
+        else:
+            xml = '<settings>'
+        if estimateField is not None and estimateField != '':
+            xml += '<estimation name="%s"/>' % estimateField
+        if timeSpentField is not None and timeSpentField != '':
+            xml += '<spentTime name="%s"/>' % timeSpentField
+        xml += '</settings>'
+        return self._reqXml(
+            'PUT', '/admin/project/' + projectId + '/timetracking', xml)
+      
     def getAllBundles(self, field_type):
         field_type = self.get_field_type(field_type)
         if field_type == "enum":
