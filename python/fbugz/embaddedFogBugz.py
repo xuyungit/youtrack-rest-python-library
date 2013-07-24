@@ -24,8 +24,8 @@ fbugz.CF_TYPES = {
     u'Original title'    :   'string',
     u'Version'           :   'string',
     u'Computer'          :   'string',
-    u'Estimate'          :   'integer',
+    u'Estimate'          :   'float',
     u'Type'              :   'enum[1]'
 }
 
-fbugz.PROJECTS_TO_IMPORT = ["Sample_Project"]
+fbugz.PROJECTS_TO_IMPORT = ["Inbox"]
