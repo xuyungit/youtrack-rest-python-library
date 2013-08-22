@@ -202,7 +202,7 @@ class FBClient(object):
         if self._users is None:
             self.get_users()
         for user in self._users:
-            if user.id.string == id:
+            if user.id == id:
                 return user.login.encode('utf-8')
         return None
 

@@ -225,7 +225,7 @@ def fb2youtrack(target_url, target_login, target_password, source_url, source_lo
 
         project_id = accessible_projects[project_name]
         print 'Importing project [ %s ]' % project_name
-        target.createProjectDetailed(project_id, project_name.encode('utf-8'), 'no description', target_login)
+        target.createProjectDetailed(project_id, project_name.encode('utf-8'), 'no description', 'root')
 
         print 'Creating custom fields in project [ %s ]' % project_name
 
