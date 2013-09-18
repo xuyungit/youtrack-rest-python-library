@@ -38,7 +38,7 @@ tracLib.CUSTOM_FIELD_TYPES = {
     "checkbox"      :   "enum[*]",
     "select"        :   "enum[1]",
     "radio"         :   "enum[1]",
-    "teaxtarea"     :   "string"
+    "textarea"     :   "string"
 }
 
 tracLib.FIELD_VALUES = {
