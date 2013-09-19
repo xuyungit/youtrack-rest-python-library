@@ -25,6 +25,11 @@ class Connection(object):
     def __init__(self, url, login=None, password=None, proxy_info=None, api_key=None):
         self.http = httplib2.Http(disable_ssl_certificate_validation=True) if proxy_info is None else httplib2.Http(
             proxy_info=proxy_info, disable_ssl_certificate_validation=True)
+
+        # Remove the last character of the url ends with "/"
+        if url is not None and url[len(url)-1] == "/":
+            url = url[0:len(url)-1]
+
         self.url = url
         self.baseUrl = url + "/rest"
         if api_key is None:
