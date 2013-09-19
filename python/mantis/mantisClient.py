@@ -246,7 +246,8 @@ class MantisClient(object):
     def _calculate_project_ids(self, project_id):
         result = self._get_child_projects_by_project_id(project_id)
         result.append(int(project_id))
-        result.append(int(0))
+        # TODO: Why do we add projectid=0? Invesigate it!
+        #result.append(int(0))
         return result
 
     def _get_child_projects_by_project_id(self, id):
