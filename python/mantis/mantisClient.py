@@ -252,7 +252,9 @@ class MantisClient(object):
     def _get_child_projects_by_project_id(self, id):
         cursor = self.sql_cnx.cursor()
         child_id_row = "child_id"
-        request = "SELECT %s FROM mantis_project_hierarchy_table WHERE parent_id = %s" % (child_id_row, id)
+        request = "SELECT %s FROM mantis_project_hierarchy_table h\
+                   WHERE parent_id = %s AND EXISTS (\
+                     SELECT * FROM mantis_project_table p WHERE p.id = h.%s)" % (child_id_row, id, child_id_row)
         cursor.execute(request)
         result = []
         for row in cursor:
