@@ -788,8 +788,8 @@ class Connection(object):
                 xml += '<description>%s</description>' % escape(work_item.description)
             xml += '<author login=%s></author>' % quoteattr(work_item.authorLogin)
             xml += '</workItem>'
-            if isinstance(xml, unicode):
-                xml = xml.encode('utf-8')
+        if isinstance(xml, unicode):
+            xml = xml.encode('utf-8')
         if xml:
             xml = '<workItems>' + xml + '</workItems>'
             self._reqXml('PUT',
