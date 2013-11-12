@@ -224,7 +224,8 @@ def process_worklog(source, target, issue):
             work_item = WorkItem()
             work_item.authorLogin = w['author']['name']
             work_item.date = to_unix_date(w['started'], truncate=True)
-            work_item.description =  w['comment']
+            if 'comment' in w:
+                work_item.description = w['comment']
             work_item.duration = int(int(w['timeSpentSeconds']) / 60)
             target.createWorkItem(issue['key'], work_item)
 
