@@ -63,7 +63,7 @@ def to_yt_comment(mantis_comment, target):
         yt_comment.author = reporter.login
     else:
         yt_comment.author = "guest"
-    if (mantis_comment.text is not None) and len(mantis_comment.text):
+    if (mantis_comment.text is not None) and len(mantis_comment.text.lstrip()):
         yt_comment.text = mantis_comment.text
     else:
         yt_comment.text = "no text"
