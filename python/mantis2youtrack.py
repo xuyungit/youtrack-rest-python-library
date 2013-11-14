@@ -176,6 +176,8 @@ def to_yt_issue(mantis_issue, project_id, target):
             value = unicode(value)
 
         issue[field_name] = value
+    if "reporterName" not in issue:
+        issue["reporterName"] = "guest"
     return issue
 
 
