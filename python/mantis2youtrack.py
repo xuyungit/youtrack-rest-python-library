@@ -283,7 +283,10 @@ def import_attachments(issue_attachments, issue_id, target):
         except YouTrackException:
             print "Failed to import attachment"
         except urllib2.HTTPError, e:
-            print 'Failed to import attachment [%s] for issue [%s]. Exception: [%s]' % (attachment.filename, issue_id, str(e))
+            msg = 'Failed to import attachment [%s] for issue [%s]. Exception: [%s]' % (attachment.filename, issue_id, str(e))
+            if isinstance(msg, unicode):
+                msg = msg.encode('utf-8')
+            print msg
 
 
 def is_prefix_of_any_other_tag(tag, other_tags):
