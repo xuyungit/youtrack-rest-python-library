@@ -339,9 +339,9 @@ class Connection(object):
                             for v in attrValue:
                                 if isinstance(v, unicode):
                                     v = v.encode('utf-8')
-                                record += '      <value>' + escape(v) + '</value>\n'
+                                record += '      <value>' + escape(v.strip()) + '</value>\n'
                         else:
-                            record += '      <value>' + escape(attrValue) + '</value>\n'
+                            record += '      <value>' + escape(attrValue.strip()) + '</value>\n'
                         record += '    </field>\n'
 
             if comments:
