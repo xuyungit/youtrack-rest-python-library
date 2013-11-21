@@ -27,8 +27,8 @@ class Connection(object):
             proxy_info=proxy_info, disable_ssl_certificate_validation=True)
 
         # Remove the last character of the url ends with "/"
-        if url is not None and url[len(url)-1] == "/":
-            url = url[0:len(url)-1]
+        if url:
+            url = url.rstrip('/')
 
         self.url = url
         self.baseUrl = url + "/rest"
