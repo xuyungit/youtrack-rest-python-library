@@ -573,6 +573,9 @@ class Connection(object):
     def createProject(self, project):
         return self.createProjectDetailed(project.id, project.name, project.description, project.lead)
 
+    def deleteProject(self, projectId):
+        return self._req('DELETE', "/admin/project/" + urlquote(projectId))
+
     def createProjectDetailed(self, projectId, name, description, projectLeadLogin, startingNumber=1):
         _name = name
         _desc = description
