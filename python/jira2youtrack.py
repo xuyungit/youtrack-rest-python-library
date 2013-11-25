@@ -146,6 +146,8 @@ def create_user(target, value):
         target.createUserDetailed(value['name'].replace(' ', '_'), value['displayName'], value[u'name'], 'fake_jabber')
     except YouTrackException, e:
         print(str(e))
+    except KeyError, e:
+        print(str(e))
 
 
 def create_value(target, value, field_name, field_type, project_id):
