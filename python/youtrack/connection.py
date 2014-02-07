@@ -649,6 +649,27 @@ class Connection(object):
         xml = minidom.parseString(content)
         return [youtrack.Issue(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
+    def getNumberOfIssues(self, filter = ''):
+        urlJobby = [('filter',filter)]
+        response, content = self._req('GET', '/issue/count?' + urllib.urlencode(urlJobby))
+        result = eval(content.replace('callback',''))
+        return result['value']
+
+    def getAllSprints(self,agileID):
+        response, content = self._req('GET', '/agile/' + agileID + "/sprints?")
+        xml = minidom.parseString(content)
+        return [(e.getAttribute('name'),e.getAttribute('start'),e.getAttribute('finish')) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
+
+    def getAllIssues(self, filter = '', after = 0, max = 999999, withFields = ()):
+        urlJobby = [('with',field) for field in withFields] + \
+                    [('after',str(after)),
+                    ('max',str(max)),
+                    ('filter',filter)]
+        response, content = self._req('GET', '/issue' + "?" +
+                                             urllib.urlencode(urlJobby))
+        xml = minidom.parseString(content)
+        return [youtrack.Issue(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
+
     def exportIssueLinks(self):
         response, content = self._req('GET', '/export/links')
         xml = minidom.parseString(content)
