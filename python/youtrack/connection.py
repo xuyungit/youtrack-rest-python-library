@@ -649,7 +649,7 @@ class Connection(object):
         xml = minidom.parseString(content)
         return [youtrack.Issue(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
-    def getNumberOfIssues(self, filter = '', waitForServer=true):
+    def getNumberOfIssues(self, filter = '', waitForServer=True):
         while True:
           urlFilterList = [('filter',filter)]
           finalUrl = '/issue/count?' + urllib.urlencode(urlFilterList)
