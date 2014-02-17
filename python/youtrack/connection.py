@@ -649,11 +649,15 @@ class Connection(object):
         xml = minidom.parseString(content)
         return [youtrack.Issue(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
-    def getNumberOfIssues(self, filter = ''):
-        urlJobby = [('filter',filter)]
-        response, content = self._req('GET', '/issue/count?' + urllib.urlencode(urlJobby))
-        result = eval(content.replace('callback',''))
-        return result['value']
+    def getNumberOfIssues(self, filter = '', waitForServer=true):
+        while True:
+          urlFilterList = [('filter',filter)]
+          finalUrl = '/issue/count?' + urllib.urlencode(urlFilterList)
+          response, content = self._req('GET', finalUrl)
+          result = eval(content.replace('callback',''))
+          numberOfIssues = result['value']
+          if (numberOfIssues!=-1 or not waitForServer):
+            return numberOfIssues
 
     def getAllSprints(self,agileID):
         response, content = self._req('GET', '/agile/' + agileID + "/sprints?")
