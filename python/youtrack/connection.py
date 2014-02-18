@@ -1,4 +1,5 @@
 import calendar
+import time
 from datetime import datetime
 import httplib2
 from xml.dom import minidom
@@ -656,8 +657,14 @@ class Connection(object):
           response, content = self._req('GET', finalUrl)
           result = eval(content.replace('callback',''))
           numberOfIssues = result['value']
-          if (numberOfIssues!=-1 or not waitForServer):
+          if (not waitForServer):
             return numberOfIssues
+          if (numberOfIssues!=-1):
+            break
+
+        time.sleep(5)
+        return self.getNumberOfIssues(filter,False)
+
 
     def getAllSprints(self,agileID):
         response, content = self._req('GET', '/agile/' + agileID + "/sprints?")
