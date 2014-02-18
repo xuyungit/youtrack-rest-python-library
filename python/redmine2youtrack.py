@@ -161,7 +161,7 @@ class RedmineImporter(object):
         while True:
             if not hasattr(project, 'parent'):
                 break
-            name = project.parent.name + ' / ' + name
+            name = project.parent.name + ' :: ' + name
             project = self._get_project(project.parent.id, True)
         return name
 
