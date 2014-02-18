@@ -117,9 +117,41 @@ class Client(object):
         component_row = "component_id"
         user_rows = ["assigned_to", "qa_contact", "reporter"]
 
+        if self.check_column_exists('bugs', 'keywords'):
+            query = '''
+                SELECT 
+                    *
+                FROM
+                    bugs
+                WHERE
+                    product_id=%s
+                AND
+                    bug_id BETWEEN %d AND %d
+                ''' % (product_id, from_id, to_id - 1)
+        else:
+            query = '''
+                SELECT
+                    b.*,
+                    ifnull(group_concat(d.name), '') keywords
+                FROM
+                    bugs b
+                LEFT JOIN
+                    keywords k
+                    ON b.bug_id = k.bug_id
+                LEFT JOIN
+                    keyworddefs d
+                    ON k.keywordid = d.id
+                WHERE
+                    b.product_id=%s
+                AND
+                    b.bug_id BETWEEN %d AND %d
+                GROUP BY
+                    b.bug_id
+                ''' % (product_id, from_id, to_id - 1)
+
         cursor = self.sql_cnx.cursor()
-        cursor.execute('SELECT * FROM bugs WHERE (product_id = %s) AND '
-                       '(bug_id >= %d) AND (bug_id < %d)' % (product_id, from_id, to_id))
+        cursor.execute(query)
+
         result = []
         for row in cursor:
             if component_row in row:
@@ -337,5 +369,10 @@ class Client(object):
     def check_table_exists(self, table_name):
         cursor = self.sql_cnx.cursor()
         request = "SHOW TABLES LIKE '%s'" % table_name
-        cursor.execute(request)
         return cursor.execute(request) > 0
+
+    def check_column_exists(self, table_name, column_name):
+        cursor = self.sql_cnx.cursor()
+        request = "SHOW COLUMNS FROM %s LIKE '%s'" % (table_name, column_name)
+        return cursor.execute(request) > 0
+        
