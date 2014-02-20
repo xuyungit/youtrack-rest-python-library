@@ -713,8 +713,10 @@ class Connection(object):
             self.createCustomField(cf)
 
     def getProjectCustomField(self, projectId, name):
+        if isinstance(name, unicode):
+            name = name.encode('utf8')
         return youtrack.ProjectCustomField(
-            self._get("/admin/project/" + urlquote(projectId) + "/customfield/" + urlquote(name.encode('utf8')))
+            self._get("/admin/project/" + urlquote(projectId) + "/customfield/" + urlquote(name))
             , self)
 
     def getProjectCustomFields(self, projectId):
