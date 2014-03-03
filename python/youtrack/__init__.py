@@ -679,6 +679,8 @@ class ProjectTimeTrackingSettings(YouTrackObject):
         if isinstance(xml, Document):
             xml = xml.documentElement
         self['Enabled'] = xml.getAttribute('enabled').lower() == 'true'
+        self['EstimateField'] = None
+        self['TimeSpentField'] = None
         for e in xml.childNodes:
             if e.tagName.lower() == 'estimation':
                 self['EstimateField'] = e.getAttribute('name')

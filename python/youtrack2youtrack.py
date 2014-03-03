@@ -146,6 +146,7 @@ def sync_time_tracking_settings(source, target, project_id):
                                           settings.EstimateField,
                                           settings.TimeSpentField,
                                           settings.Enabled)
+    return settings
 
 def period_to_minutes(value):
     minutes = 0
@@ -251,7 +252,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                 create_project_custom_field(target, field, projectId)
 
         # Import Time Tracking settings
-        sync_time_tracking_settings(source, target, projectId)
+        tt_settings = sync_time_tracking_settings(source, target, projectId)
 
         # TODO: copy assignees
 
@@ -305,8 +306,9 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                 link_importer.addAvailableIssues(issues)
 
                 for issue in issues:
-                    print "Process work items for issue [ " + issue.id + "]"
-                    target.importWorkItems(issue.id, source.getWorkItems(issue.id))
+                    if tt_settings.Enabled:
+                        print "Process work items for issue [ " + issue.id + "]"
+                        target.importWorkItems(issue.id, source.getWorkItems(issue.id))
 
                     print "Process attachments for issue [ " + issue.id + "]"
                     attachments = issue.getAttachments()

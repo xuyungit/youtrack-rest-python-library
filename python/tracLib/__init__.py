@@ -35,6 +35,7 @@ class TracIssue(object):
         self.custom_fields = {}
         self.attachment = set([])
         self.comments = set([])
+        self.workitems = set([])
 
 class TracVersion(object):
 
@@ -86,6 +87,13 @@ class TracComment(object):
 
     def __eq__(self, other):
         return self.id == other.id
+
+class TracWorkItem(object):
+    def __init__(self, time):
+        self.time = time
+        self.author = ""
+        self.duration = 0
+        self.comment = ""
 
 class TracResolution(object):
 

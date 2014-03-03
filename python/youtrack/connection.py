@@ -315,8 +315,18 @@ class Connection(object):
         if len(issues) <= 0:
             return
 
+        bad_fields = ['id', 'projectShortName', 'votes', 'commentsCount',
+                      'historyUpdated', 'updatedByFullName', 'updaterFullName',
+                      'reporterFullName', 'links', 'attachments', 'jiraId']
+
+        tt_settings = self.getProjectTimeTrackingSettings(projectId)
+        if tt_settings.Enabled and tt_settings.TimeSpentField:
+            bad_fields.append(tt_settings.TimeSpentField)
+
         xml = '<issues>\n'
         issue_records = dict([])
+
+
         for issue in issues:
             record = ""
             record += '  <issue>\n'
@@ -337,8 +347,7 @@ class Connection(object):
                     comments = attrValue
                 else:
                     # ignore bad fields from getIssue()
-                    if issueAttr not in ['id', 'projectShortName', 'votes', 'commentsCount', 'historyUpdated',
-                                         'updatedByFullName', 'updaterFullName', 'reporterFullName', 'links', 'attachments', 'jiraId']:
+                    if issueAttr not in bad_fields:
                         record += '    <field name="' + issueAttr + '">\n'
                         if isinstance(attrValue, list) or getattr(attrValue, '__iter__', False):
                             for v in attrValue:

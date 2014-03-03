@@ -178,6 +178,20 @@ class Client(object):
                 comment.content = unicode(elem[2])
                 comment.id = elem[3]
                 issue.comments.add(comment)
+            #getting workitems
+            wi_cursor = self.db_cnx.cursor()
+            wi_cursor.execute("SELECT time_started, seconds_worked, worker, comments FROM ticket_time WHERE ticket=%d ORDER BY time_started DESC" % row[0])
+            for elem in wi_cursor:
+                print elem[0]
+                print elem[1]
+                print elem[2]
+                print elem[3]
+                workitem = TracWorkItem(elem[0])
+                workitem.duration = elem[1]
+                workitem.author = elem[2]
+                if elem[3] is not None:
+                    workitem.comment = elem[3]
+                issue.workitems.add(workitem)
         return trac_issues
 
 

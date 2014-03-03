@@ -263,6 +263,13 @@ def to_youtrack_state(trac_resolution, yt_bundle) :
     state.isResolved = True
     return state
 
+def to_youtrack_workitem(trac_workitem):
+    workitem = youtrack.WorkItem()
+    workitem.date = str(trac_workitem.time * 1000) # to millis
+    workitem.duration = str(int(trac_workitem.duration) / 60)
+    workitem.authorLogin = trac_workitem.author
+    workitem.description = trac_workitem.comment
+    return workitem
 
 def create_yt_bundle_custom_field(target, project_id, field_name, trac_field_values, trac_field_to_youtrack_field):
     """
@@ -429,6 +436,21 @@ def trac2youtrack(target_url, target_login, target_password, project_ID, project
             target.createAttachment(str(project_ID) + "-" + str(issue.id), attach.name, content, attach.author_name,
                                     created=attach.time)
     print "Importing attachments finished"
+
+    print "Importing workitems"
+    tt_enabled = False
+    for issue in trac_issues:
+        if issue.workitems:
+            if not tt_enabled:
+                tt_settings = target.getProjectTimeTrackingSettings(str(project_ID))
+                if not tt_settings.Enabled:
+                    print "Enabling TimeTracking for the prject"
+                    target.setProjectTimeTrackingSettings(str(project_ID), enabled=True)
+                tt_enabled = True
+            print "Processing issue [ %s ]" % (str(issue.id))
+            workitems = [to_youtrack_workitem(w) for w in issue.workitems]
+            target.importWorkItems(str(project_ID) + "-" + str(issue.id), workitems)
+    print "Importing workitems finished"
 
 if __name__ == "__main__":
     main()
