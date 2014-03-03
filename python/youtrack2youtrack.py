@@ -140,6 +140,13 @@ def create_project_stub(source, target, projectId, user_importer):
 
     return target.getProject(projectId)
 
+def sync_time_tracking_settings(source, target, project_id):
+    settings = source.getProjectTimeTrackingSettings(project_id)
+    target.setProjectTimeTrackingSettings(project_id,
+                                          settings.EstimateField,
+                                          settings.TimeSpentField,
+                                          settings.Enabled)
+
 def period_to_minutes(value):
     minutes = 0
     for period in re.findall('\d+[wdhm]', value):
@@ -242,6 +249,9 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                         create_project_custom_field(target, field, projectId)
             else:
                 create_project_custom_field(target, field, projectId)
+
+        # Import Time Tracking settings
+        sync_time_tracking_settings(source, target, projectId)
 
         # TODO: copy assignees
 
