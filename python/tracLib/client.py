@@ -179,13 +179,14 @@ class Client(object):
                 comment.id = elem[3]
                 issue.comments.add(comment)
             #getting workitems
+            with self.env.db_transaction as db:
+                cursor = db.cursor()
+                cursor.execute("SHOW TABLES LIKE 'ticket_time'")
+                if not cursor.fetchall():
+                    continue
             wi_cursor = self.db_cnx.cursor()
             wi_cursor.execute("SELECT time_started, seconds_worked, worker, comments FROM ticket_time WHERE ticket=%d ORDER BY time_started DESC" % row[0])
             for elem in wi_cursor:
-                print elem[0]
-                print elem[1]
-                print elem[2]
-                print elem[3]
                 workitem = TracWorkItem(elem[0])
                 workitem.duration = elem[1]
                 workitem.author = elem[2]
