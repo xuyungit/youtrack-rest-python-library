@@ -76,4 +76,9 @@ tracLib.DEFAULT_EMAIL = "user@server.com"
 # else they are known as guests
 tracLib.ACCEPT_NON_AUTHORISED_USERS = True
 
-
+# Enable support for plugins to import timetracking data into YouTrack.
+# You can set this option manualy if autodetection doesn't work correctly.
+# Available options:
+#   - trachours
+#   - timingandestimationplugin
+tracLib.SUPPORT_TIME_TRACKING = "auto"

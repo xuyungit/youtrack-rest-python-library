@@ -265,7 +265,7 @@ def to_youtrack_state(trac_resolution, yt_bundle) :
 
 def to_youtrack_workitem(trac_workitem):
     workitem = youtrack.WorkItem()
-    workitem.date = str(trac_workitem.time * 1000) # to millis
+    workitem.date = str(trac_workitem.time)
     workitem.duration = str(int(trac_workitem.duration) / 60)
     workitem.authorLogin = trac_workitem.author
     workitem.description = trac_workitem.comment

@@ -3,15 +3,34 @@ from trac.attachment import Attachment
 from tracLib import *
 from ConfigParser import ConfigParser
 import tracLib
+import tracLib.timetracking
 
 
 class Client(object):
-    
     def __init__(self, env_path):
         self.env_path = env_path
         self.env = Environment(env_path)
         self.db_cnx = self.env.get_db_cnx()
         self._registered_users_logins = []
+        self._timetracking_plugins = self._get_timetracking_plugins()
+
+    def _get_timetracking_plugins(self):
+        plugins = {}
+        if tracLib.SUPPORT_TIME_TRACKING == 'auto':
+            for plugin in tracLib.timetracking.plugins:
+                plugin_name = plugin.get_name()
+                for com_name, com_enabled in self.env._component_rules.items():
+                    if com_name.startswith(plugin_name) and com_enabled and plugin_name not in plugins:
+                        plugins[plugin_name] = plugin(self.env)
+        else:
+            for plugin in tracLib.timetracking.plugins:
+                plugin_name = plugin.get_name()
+                if plugin_name == tracLib.SUPPORT_TIME_TRACKING:
+                    plugins[plugin_name] = plugin(self.env)
+                    break;
+        for plugin_name in plugins.keys():
+            print "Plugin '%s' will be used to get workitems." % plugin_name
+        return plugins.values()
 
     def get_project_description(self):
         return self.env.project_description
@@ -109,7 +128,7 @@ class Client(object):
         for row in cursor:
             version = TracVersion(row[0])
             if row[1]:
-                version.time = self.to_unix_time(row[1])
+                version.time = to_unix_time(row[1])
             if row[2] is not None:
                 version.description = row[2]
             trac_versions.append(version)
@@ -122,8 +141,8 @@ class Client(object):
         trac_issues = list([])
         for row in cursor:
             issue = TracIssue(row[0])
-            issue.time = self.to_unix_time(row[2])
-            issue.changetime = self.to_unix_time(row[3])
+            issue.time = to_unix_time(row[2])
+            issue.changetime = to_unix_time(row[3])
             issue.reporter = self._get_user_login(row[8])
             if row[9] is not None:
                 cc = row[9].split(",")
@@ -162,7 +181,7 @@ class Client(object):
                 at = TracAttachment(Attachment._get_path(self.env.path, 'ticket', str(issue.id), elem[0]))
                 at.name = elem[0]
                 at.size = elem[1]
-                at.time = self.to_unix_time(elem[2])
+                at.time = to_unix_time(elem[2])
                 at.description = elem[3]
                 at.author_name = elem[4]
                 issue.attachment.add(at)
@@ -173,26 +192,14 @@ class Client(object):
             for elem in change_cursor:
                 if (elem[2] is None) or (not len(elem[2].lstrip())):
                     continue
-                comment = TracComment(self.to_unix_time(elem[0]))
+                comment = TracComment(to_unix_time(elem[0]))
                 comment.author = str(elem[1])
                 comment.content = unicode(elem[2])
                 comment.id = elem[3]
                 issue.comments.add(comment)
             #getting workitems
-            with self.env.db_transaction as db:
-                cursor = db.cursor()
-                cursor.execute("SHOW TABLES LIKE 'ticket_time'")
-                if not cursor.fetchall():
-                    continue
-            wi_cursor = self.db_cnx.cursor()
-            wi_cursor.execute("SELECT time_started, seconds_worked, worker, comments FROM ticket_time WHERE ticket=%d ORDER BY time_started DESC" % row[0])
-            for elem in wi_cursor:
-                workitem = TracWorkItem(elem[0])
-                workitem.duration = elem[1]
-                workitem.author = elem[2]
-                if elem[3] is not None:
-                    workitem.comment = elem[3]
-                issue.workitems.add(workitem)
+            for ttp in self._timetracking_plugins:
+                issue.workitems.update(set(ttp[row[0]]))
         return trac_issues
 
 
@@ -229,13 +236,7 @@ class Client(object):
 
         return custom_fields
 
-        
-
     def _get_data_from_enum(self, type_name):
         cursor = self.db_cnx.cursor()
         cursor.execute("SELECT name, value FROM enum WHERE type=%s", (type_name,))
         return [row[0] for row in cursor]
-
-    def to_unix_time(self, time):
-        return time / 1000
-

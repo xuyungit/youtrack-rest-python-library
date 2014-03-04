@@ -1,4 +1,3 @@
-
 CUSTOM_FIELD_TYPES = None
 PERMISSIONS = None
 DEFAULT_EMAIL = " "
@@ -89,13 +88,17 @@ class TracComment(object):
         return self.id == other.id
 
 class TracWorkItem(object):
-    def __init__(self, time):
+    def __init__(self, time, duration, author, comment):
         self.time = time
-        self.author = ""
-        self.duration = 0
-        self.comment = ""
+        self.duration = duration
+        self.author = author
+        self.comment = comment.strip() if comment is not None else ""
 
 class TracResolution(object):
 
     def __init__(self, name):
         self.name = name
+
+
+def to_unix_time(time):
+    return time / 1000
