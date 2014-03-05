@@ -6,6 +6,8 @@ FIELD_VALUES = dict([])
 FIELD_TYPES = dict([])
 FIELD_NAMES = dict([])
 
+SUPPORT_TIME_TRACKING = 'auto'
+
 class TracUser(object):
 
     def __init__(self, name):
