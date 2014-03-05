@@ -1,7 +1,10 @@
+import os
 import base64
 import json
 import httplib2
 from jira import JiraException
+
+_debug = os.environ.get('DEBUG')
 
 class JiraClient(object):
 
@@ -58,7 +61,12 @@ class JiraClient(object):
         return response, json.loads(content)
 
     def _get(self, url):
+        if _debug:
+            print "DEBUG: _get %s" % url
         response, content = self._http.request(url, headers = self._headers.copy())
+        if _debug:
+            print "DEBUG: response: %d" % response.status
+            print "DEBUG: content: %s" % content
         return response, json.loads(content)
 
     def _login(self, login, password):
