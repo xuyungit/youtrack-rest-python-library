@@ -422,6 +422,12 @@ class Connection(object):
                 print ""
         return response
 
+    def getProjects(self):
+        projects = {}
+        for e in self._get("/project/all").documentElement.childNodes:
+            projects[e.getAttribute('shortName')] = e.getAttribute('name')
+        return projects
+
     def getProject(self, projectId):
         """ http://confluence.jetbrains.net/display/YTD2/GET+project
         """
