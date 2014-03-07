@@ -266,11 +266,20 @@ def jira2youtrack(source_url, source_login, source_password, target_url, target_
                 [create_yt_issue_from_jira_issue(target, issue, project_id) for issue in
                  jira_issues])
             for issue in jira_issues:
-                process_labels(target, issue)
-                process_attachments(source, target, issue)
-                process_worklog(source, target, issue)
+                try:
+                    process_labels(target, issue)
+                except YouTrackException, e:
+                    print e
+                try:
+                    process_attachments(source, target, issue)
+                except YouTrackException, e:
+                    print e
+                try:
+                    process_worklog(source, target, issue)
+                except YouTrackException, e:
+                    print e
         except YouTrackException, e:
-            print(str(e))
+            print e
 
     for i in range(first_chunk, last_chunk):
         start = i * 10 + 1
