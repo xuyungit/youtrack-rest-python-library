@@ -320,7 +320,7 @@ class Connection(object):
                       'reporterFullName', 'links', 'attachments', 'jiraId']
 
         tt_settings = self.getProjectTimeTrackingSettings(projectId)
-        if tt_settings.Enabled and tt_settings.TimeSpentField:
+        if tt_settings and tt_settings.Enabled and tt_settings.TimeSpentField:
             bad_fields.append(tt_settings.TimeSpentField)
 
         xml = '<issues>\n'
@@ -846,12 +846,20 @@ class Connection(object):
                       % (issue_id, urllib.urlencode(opts))), self)
 
     def getGlobalTimeTrackingSettings(self):
-        return youtrack.GlobalTimeTrackingSettings(
-            self._get('/admin/timetracking'), self)
+        try:
+            cont = self._get('/admin/timetracking')
+            return youtrack.GlobalTimeTrackingSettings(cont, xml)
+        except youtrack.YouTrackException, e:
+            if e.response.status != 404:
+                raise e
 
     def getProjectTimeTrackingSettings(self, projectId):
-        return youtrack.ProjectTimeTrackingSettings(
-            self._get('/admin/project/' + projectId + '/timetracking'), self)
+        try:
+            cont = self._get('/admin/project/' + projectId + '/timetracking')
+            return youtrack.ProjectTimeTrackingSettings(cont, self)
+        except youtrack.YouTrackException, e:
+            if e.response.status != 404:
+                raise e
 
     def setGlobalTimeTrackingSettings(self, daysAWeek=None, hoursADay=None):
         xml = '<timesettings>'

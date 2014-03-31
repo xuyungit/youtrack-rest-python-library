@@ -140,13 +140,20 @@ def create_project_stub(source, target, projectId, user_importer):
 
     return target.getProject(projectId)
 
-def sync_time_tracking_settings(source, target, project_id):
-    settings = source.getProjectTimeTrackingSettings(project_id)
-    target.setProjectTimeTrackingSettings(project_id,
-                                          settings.EstimateField,
-                                          settings.TimeSpentField,
-                                          settings.Enabled)
-    return settings
+def enable_time_tracking(source, target, project_id):
+    dst_settings = target.getProjectTimeTrackingSettings(project_id)
+    if dst_settings:
+        f_est = None
+        f_spent = None
+        src_settings = source.getProjectTimeTrackingSettings(project_id)
+        # 1. If no settings available then there is YouTrack <= 4.2.1
+        # 2. Do not override existing field settings.
+        if src_settings and \
+           not (dst_settings.EstimateField or dst_settings.TimeSpentField):
+                f_est = src_settings.EstimateField
+                f_spent = src_settings.TimeSpentField
+        print "Enabling Time Tracking"
+        target.setProjectTimeTrackingSettings(project_id, f_est, f_spent, True)
 
 def period_to_minutes(value):
     minutes = 0
@@ -251,14 +258,11 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
             else:
                 create_project_custom_field(target, field, projectId)
 
-        # Import Time Tracking settings
-        tt_settings = sync_time_tracking_settings(source, target, projectId)
-
-        # TODO: copy assignees
-
         # copy issues
         start = 0
         max = 20
+
+        sync_workitems = True
 
         print "Import issues"
 
@@ -306,9 +310,20 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                 link_importer.addAvailableIssues(issues)
 
                 for issue in issues:
-                    if tt_settings.Enabled:
-                        print "Process work items for issue [ " + issue.id + "]"
-                        target.importWorkItems(issue.id, source.getWorkItems(issue.id))
+                    if sync_workitems:
+                        workitems = source.getWorkItems(issue.id)
+                        if workitems:
+                            enable_time_tracking(source, target, project_id)
+                            print "Process workitems for issue [ " + issue.id + "]"
+                            try:
+                                target.importWorkItems(issue.id, workitems)
+                            except youtrack.YouTrackException, e:
+                                if e.response.status == 404:
+                                    print "WARN: Target YouTrack doesn't support workitems importing."
+                                    print "WARN: Workitems won't be imported."
+                                    sync_workitems = False
+                                else:
+                                    print "ERROR: Skipping workitems because of error:" + str(e)
 
                     print "Process attachments for issue [ " + issue.id + "]"
                     attachments = issue.getAttachments()
