@@ -11,6 +11,7 @@ from xml.sax.saxutils import escape, quoteattr
 import json
 import urllib2_file
 import tempfile
+import functools
 
 def urlquote(s):
     return urllib.quote(utf8encode(s), safe="")
@@ -19,6 +20,18 @@ def utf8encode(source):
     if isinstance(source, unicode):
         source = source.encode('utf-8')
     return source
+
+def relogin_on_401(f):
+    @functools.wraps(f)
+    def wrapped(self, *args, **kwargs):
+        try:
+            return f(self, *args, **kwargs)
+        except youtrack.YouTrackException, e:
+            if e.response.status != 401:
+                raise e
+            self._login(*self._credentials)
+            return f(self, *args, **kwargs)
+    return wrapped
 
 
 class Connection(object):
@@ -33,7 +46,8 @@ class Connection(object):
         self.url = url
         self.baseUrl = url + "/rest"
         if api_key is None:
-            self._login(login, password)
+            self._credentials = (login, password)
+            self._login(*self._credentials)
         else:
             self.headers = {'X-YouTrack-ApiKey': api_key}
 
@@ -47,9 +61,7 @@ class Connection(object):
         self.headers = {'Cookie': response['set-cookie'],
                         'Cache-Control': 'no-cache'}
 
-        #print responsetes
-
-
+    @relogin_on_401
     def _req(self, method, url, body=None, ignoreStatus=None):
         headers = self.headers
         if method == 'PUT' or method == 'POST':
