@@ -177,10 +177,10 @@ class Issue(YouTrackObject):
         return self.youtrack.getUser(self.reporterName)
 
     def hasAssignee(self):
-        return getattr(self, 'assigneeName', None) is not None
+        return getattr(self, 'Assignee', None) is not None
 
     def getAssignee(self):
-        return self.youtrack.getUser(self.assigneeName)
+        return self.youtrack.getUser(self.Assignee)
 
     def getUpdater(self):
         return self.youtrack.getUser(self.updaterName)
