@@ -1,4 +1,5 @@
 import calendar
+import time
 from datetime import datetime
 import httplib2
 from xml.dom import minidom
@@ -673,6 +674,37 @@ class Connection(object):
                                              urllib.urlencode({'after': str(after),
                                                                'max': str(max),
                                                                'filter': filter}))
+        xml = minidom.parseString(content)
+        return [youtrack.Issue(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
+
+    def getNumberOfIssues(self, filter = '', waitForServer=True):
+        while True:
+          urlFilterList = [('filter',filter)]
+          finalUrl = '/issue/count?' + urllib.urlencode(urlFilterList)
+          response, content = self._req('GET', finalUrl)
+          result = eval(content.replace('callback',''))
+          numberOfIssues = result['value']
+          if (not waitForServer):
+            return numberOfIssues
+          if (numberOfIssues!=-1):
+            break
+
+        time.sleep(5)
+        return self.getNumberOfIssues(filter,False)
+
+
+    def getAllSprints(self,agileID):
+        response, content = self._req('GET', '/agile/' + agileID + "/sprints?")
+        xml = minidom.parseString(content)
+        return [(e.getAttribute('name'),e.getAttribute('start'),e.getAttribute('finish')) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
+
+    def getAllIssues(self, filter = '', after = 0, max = 999999, withFields = ()):
+        urlJobby = [('with',field) for field in withFields] + \
+                    [('after',str(after)),
+                    ('max',str(max)),
+                    ('filter',filter)]
+        response, content = self._req('GET', '/issue' + "?" +
+                                             urllib.urlencode(urlJobby))
         xml = minidom.parseString(content)
         return [youtrack.Issue(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
