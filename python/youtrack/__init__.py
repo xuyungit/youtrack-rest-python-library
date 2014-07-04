@@ -6,6 +6,7 @@ import re
 from xml.dom import Node
 from xml.dom.minidom import Document
 from xml.dom import minidom
+import datetime
 
 
 EXISTING_FIELD_TYPES = {
@@ -107,11 +108,24 @@ class YouTrackObject(object):
         return _repr
 
     def __iter__(self):
-        for item in self.__dict__:
-            attr = self.__dict__[item]
-            if isinstance(attr, basestring) or isinstance(attr, list) \
-            or getattr(attr, '__iter__', False):
-                yield item
+        for k, v in self.__dict__.items():
+            if k == 'youtrack':
+                continue
+            if k == 'created' or k == 'updated':
+                v = datetime.datetime.fromtimestamp(int(v)/1000)
+            if isinstance(k, unicode):
+                k = k.encode('utf-8')
+            if isinstance(v, unicode):
+                v = v.encode('utf-8')
+            if hasattr(v, '__iter__'):
+                l = []
+                for i in v:
+                    if isinstance(i, YouTrackObject):
+                        l.append(dict(i))
+                    else:
+                        l.append(i)
+                v = l
+            yield (k, v)
 
     def __getitem__(self, key):
         return self.__dict__[key]
