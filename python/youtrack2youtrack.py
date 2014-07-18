@@ -152,8 +152,11 @@ def enable_time_tracking(source, target, project_id):
            not (dst_settings.EstimateField or dst_settings.TimeSpentField):
                 f_est = src_settings.EstimateField
                 f_spent = src_settings.TimeSpentField
-        print "Enabling Time Tracking"
-        target.setProjectTimeTrackingSettings(project_id, f_est, f_spent, True)
+        if src_settings.Enabled:
+            print "Enabling Time Tracking"
+            target.setProjectTimeTrackingSettings(project_id, f_est, f_spent, True)
+            return True
+    return False
 
 def period_to_minutes(value):
     minutes = 0
@@ -262,7 +265,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
         start = 0
         max = 20
 
-        sync_workitems = True
+        sync_workitems = enable_time_tracking(source, target, project_id)
 
         print "Import issues"
 
@@ -313,7 +316,6 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                     if sync_workitems:
                         workitems = source.getWorkItems(issue.id)
                         if workitems:
-                            enable_time_tracking(source, target, project_id)
                             print "Process workitems for issue [ " + issue.id + "]"
                             try:
                                 target.importWorkItems(issue.id, workitems)
