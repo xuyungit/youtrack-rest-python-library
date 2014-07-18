@@ -60,7 +60,7 @@ class UserImporter(object):
         for user in users:
             filtered_user = self._filter_user(user)
             if filtered_user: users_to_import.append(filtered_user)
-        print self.target.importUsers(users_to_import)
+        self.target.importUsers(users_to_import)
         for yt_user in users_to_import:
             self._import_groups_of(yt_user)
             if self.caching_users: self.created_user_logins.add(yt_user.login)
