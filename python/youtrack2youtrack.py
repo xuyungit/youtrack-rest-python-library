@@ -338,7 +338,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                     for a in attachments:
                         print "Transfer attachment of " + issue.id.encode('utf-8') + ": " + a.name.encode('utf-8')
                         # TODO: add authorLogin to workaround http://youtrack.jetbrains.net/issue/JT-6082
-                        a.authorLogin = target_login
+                        #a.authorLogin = target_login
                         try:
                             target.createAttachmentFromAttachment(issue.id, a)
                         except BaseException, e:
