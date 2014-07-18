@@ -34,6 +34,7 @@ Usage:
 
 Options:
     -h,  Show this help and exit
+    -a,  Import attachments only
     -p,  Covert period values (used as workaroud for JT-19362)
     -t,  Time Tracking settings in format "days_in_a_week:hours_in_a_day"
 """ % os.path.basename(sys.argv[0])
@@ -42,15 +43,18 @@ def main():
     global convert_period_values
     global days_in_a_week
     global hours_in_a_day
+    attachments_only = False
     try:
         params = {}
-        opts, args = getopt.getopt(sys.argv[1:], 'hpt:')
+        opts, args = getopt.getopt(sys.argv[1:], 'hapt:')
         for opt, val in opts:
             if opt == '-h':
                 usage()
                 sys.exit(0)
             if opt == '-p':
                 convert_period_values = True
+            elif opt == '-a':
+                attachments_only = True
             elif opt == '-t':
                 if ':' in val:
                     d, h = val.split(':')
@@ -71,8 +75,14 @@ def main():
         print 'Not enough arguments'
         usage()
         sys.exit(1)
-    youtrack2youtrack(source_url, source_login, source_password,
-                      target_url, target_login, target_password, project_ids)
+    if attachments_only:
+        import_attachments_only(source_url, source_login, source_password,
+                                target_url, target_login, target_password,
+                                project_ids)
+    else:
+        youtrack2youtrack(source_url, source_login, source_password,
+                          target_url, target_login, target_password,
+                          project_ids)
 
 def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_importer):
     source_bundle = source.getBundle(bundle_type, bundle_name)
@@ -356,6 +366,47 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
 
     print "Import issue links"
     link_importer.importCollectedLinks()
+
+
+def import_attachments_only(source_url, source_login, source_password,
+                            target_url, target_login, target_password,
+                            project_ids):
+    if not project_ids:
+        print 'No projects to import. Exit...'
+        return
+    start = 0
+    max = 20
+    source = Connection(source_url, source_login, source_password)
+    target = Connection(target_url, target_login, target_password)
+    user_importer = UserImporter(source, target, caching_users=True)
+    for projectId in project_ids:
+        while True:
+            try:
+                print 'Get issues from %d to %d' % (start, start + max)
+                issues = source.getIssues(projectId, '', start, max)
+                if len(issues) <= 0:
+                    break
+                for issue in issues:
+                    print 'Process attachments for issue %s' % issue.id
+                    attachments = issue.getAttachments()
+                    users = set([])
+                    for a in attachments:
+                        author = a.getAuthor()
+                        if author is not None:
+                            users.add(author)
+                    user_importer.importUsersRecursively(users)
+                    for a in attachments:
+                        print 'Transfer attachment of %s: %s' % (issue.id, a.name.encode('utf-8'))
+                        try:
+                            target.createAttachmentFromAttachment(issue.id, a)
+                        except BaseException, e:
+                            print 'Cannot import attachment [ %s ]' % a.name.encode('utf-8')
+                            print repr(e)
+            except Exception, e:
+                print 'Cannot process issues from %d to %d' % (start, start + max)
+                traceback.print_exc()
+                raise e
+            start += max
 
 
 if __name__ == "__main__":
