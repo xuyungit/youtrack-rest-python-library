@@ -156,16 +156,16 @@ def enable_time_tracking(source, target, project_id):
         f_est = None
         f_spent = None
         src_settings = source.getProjectTimeTrackingSettings(project_id)
-        # 1. If no settings available then there is YouTrack <= 4.2.1
-        # 2. Do not override existing field settings.
-        if src_settings and \
-           not (dst_settings.EstimateField or dst_settings.TimeSpentField):
+        # If no settings available then there is YouTrack <= 4.2.1
+        if src_settings:
+            # Do not override existing field settings.
+            if not (dst_settings.EstimateField or dst_settings.TimeSpentField):
                 f_est = src_settings.EstimateField
                 f_spent = src_settings.TimeSpentField
-        if src_settings.Enabled:
-            print "Enabling Time Tracking"
-            target.setProjectTimeTrackingSettings(project_id, f_est, f_spent, True)
-            return True
+            if src_settings.Enabled:
+                print "Enabling Time Tracking"
+                target.setProjectTimeTrackingSettings(project_id, f_est, f_spent, True)
+                return True
     return False
 
 def period_to_minutes(value):
