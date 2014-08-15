@@ -98,14 +98,15 @@ def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_imp
             user_importer.importUsersRecursively(set(source_bundle.get_all_users()))
             # get field and calculate not existing groups
             target_bundle_group_names = [elem.name.capitalize() for elem in target_bundle.groups]
-            groups_to_add = [group for group in target_bundle.groups if
+            groups_to_add = [group for group in source_bundle.groups if
                              group.name.capitalize() not in target_bundle_group_names]
+            user_importer.importGroupsWithoutUsers(groups_to_add)
             for group in groups_to_add:
                 target.addValueToBundle(target_bundle, group)
                 # add individual users to bundle
-            source_bundle_user_logins = [elem.login.capitalize() for elem in source_bundle.users]
-            users_to_add = [user for user in target_bundle.users if
-                            user.login.capitalize() not in source_bundle_user_logins]
+            target_bundle_user_logins = [elem.login.capitalize() for elem in target_bundle.get_all_users()]
+            users_to_add = [user for user in source_bundle.users if
+                            user.login.capitalize() not in target_bundle_user_logins]
             for user in users_to_add:
                 target.addValueToBundle(target_bundle, user)
             return
