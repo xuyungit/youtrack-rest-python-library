@@ -230,6 +230,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
         if source_cf.type.lower() == 'period':
             period_cf_names.append(source_cf.name.lower())
 
+        print "Processing custom field '%s'" % cf_name.encode('utf-8')
         if cf_name in target_cf_names:
             target_cf = target.getCustomField(cf_name)
             if not(target_cf.type == source_cf.type):
@@ -338,11 +339,25 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                 else:
                                     print "ERROR: Skipping workitems because of error:" + str(e)
 
-                    print "Process attachments for issue [ " + issue.id + "]"
-                    attachments = issue.getAttachments()
-                    users = set([])
+                    print "Process attachments for issue [%s]" % issue.id
+                    existing_attachments = dict()
+                    try:
+                        for a in target.getAttachments(issue.id):
+                            existing_attachments[a.name + '\n' + a.created] = True
+                    except youtrack.YouTrackException, e:
+                        if e.response.status == 404:
+                            print "Skip importing attachments because issue %s doesn't exist" % issue.id
+                            continue
+                        raise e
 
-                    for a in attachments:
+                    attachments = []
+
+                    users = set([])
+                    for a in issue.getAttachments():
+                        if a.name + '\n' + a.created in existing_attachments:
+                            print "Skip attachment '%s' (created: %s) because it's already exists" % (a.name.encode('utf-8'), a.created)
+                            continue
+                        attachments.append(a)
                         author = a.getAuthor()
                         if author is not None:
                             users.add(author)
@@ -389,13 +404,29 @@ def import_attachments_only(source_url, source_login, source_password,
                     break
                 for issue in issues:
                     print 'Process attachments for issue %s' % issue.id
-                    attachments = issue.getAttachments()
+                    existing_attachments = dict()
+                    try:
+                        for a in target.getAttachments(issue.id):
+                            existing_attachments[a.name + '\n' + a.created] = True
+                    except youtrack.YouTrackException, e:
+                        if e.response.status == 404:
+                            print "Skip importing attachments because issue %s doesn't exist" % issue.id
+                            continue
+                        raise e
+
+                    attachments = []
+
                     users = set([])
-                    for a in attachments:
+                    for a in issue.getAttachments():
+                        if a.name + '\n' + a.created in existing_attachments:
+                            print "Skip attachment '%s' (created: %s) because it already exists" % (a.name.encode('utf-8'), a.created)
+                            continue
+                        attachments.append(a)
                         author = a.getAuthor()
                         if author is not None:
                             users.add(author)
                     user_importer.importUsersRecursively(users)
+
                     for a in attachments:
                         print 'Transfer attachment of %s: %s' % (issue.id, a.name.encode('utf-8'))
                         try:
