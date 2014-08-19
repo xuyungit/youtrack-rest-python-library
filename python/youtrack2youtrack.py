@@ -4,15 +4,14 @@
 import os
 import sys
 from youtrack.connection import Connection, youtrack
-#from sets import Set
 import traceback
 
-#httplib2.debuglevel=4
 from sync.users import UserImporter
 from sync.links import LinkImporter
 
 import re
 import getopt
+import datetime
 
 convert_period_values = False
 days_in_a_week = 5
@@ -35,6 +34,8 @@ Usage:
 Options:
     -h,  Show this help and exit
     -a,  Import attachments only
+    -c,  Add new comments to target issues
+    -f,  Sync custom field values
     -r,  Replace old attachments with new ones (remove and re-import)
     -p,  Covert period values (used as workaroud for JT-19362)
     -t,  Time Tracking settings in format "days_in_a_week:hours_in_a_day"
@@ -48,7 +49,7 @@ def main():
     attachments_only = False
     try:
         params = {}
-        opts, args = getopt.getopt(sys.argv[1:], 'harpt:')
+        opts, args = getopt.getopt(sys.argv[1:], 'harcfpt:')
         for opt, val in opts:
             if opt == '-h':
                 usage()
@@ -59,6 +60,10 @@ def main():
                 attachments_only = True
             elif opt == '-r':
                 params['replace_attachments'] = True
+            elif opt == '-c':
+                params['add_new_comments'] = True
+            elif opt == '-f':
+                params['sync_custom_fields'] = True
             elif opt == '-t':
                 if ':' in val:
                     d, h = val.split(':')
@@ -283,7 +288,8 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
         start = 0
         max = 20
 
-        sync_workitems = enable_time_tracking(source, target, project_id)
+        sync_workitems = enable_time_tracking(source, target, projectId)
+        tt_settings = target.getProjectTimeTrackingSettings(projectId)
 
         print "Import issues"
 
@@ -331,19 +337,87 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                 link_importer.addAvailableIssues(issues)
 
                 for issue in issues:
+                    if params.get('add_new_comments'):
+                        target_issue = target.getIssue(issue.id)
+                        target_comments = dict()
+                        max_id = 0
+                        for c in target_issue.getComments():
+                            target_comments[c.created] = c
+                            if max_id < c.created:
+                                max_id = c.created
+                        for c in issue.getComments():
+                            if c.created > max_id or c.created not in target_comments:
+                                group = None
+                                if hasattr(c, 'group'):
+                                    group = c.group
+                                target.executeCommand(issue.id, 'comment', c.text, group, c.author)
+
+                    if params.get('sync_custom_fields'):
+                        skip_fields = []
+                        if tt_settings and tt_settings.Enabled and tt_settings.TimeSpentField:
+                            skip_fields.append(tt_settings.TimeSpentField)
+                        skip_fields = [name.lower() for name in skip_fields]
+                        for pcf in [pcf for pcf in project_custom_fields if pcf.name.lower() not in skip_fields]:
+                            target_issue = target.getIssue(issue.id)
+                            target_cf_value = None
+                            if pcf.name in target_issue:
+                                target_cf_value = target_issue[pcf.name]
+                            source_cf_value = None
+                            if pcf.name in issue:
+                                source_cf_value = issue[pcf.name]
+                            if source_cf_value != target_cf_value:
+                                if isinstance(source_cf_value, (list, tuple)):
+                                    if target_cf_value is not None:
+                                        for v in target_cf_value:
+                                            if v not in source_cf_value:
+                                                target.executeCommand(issue.id, 'remove %s %s' % (pcf.name, v))
+                                        for v in source_cf_value:
+                                            if v not in target_cf_value:
+                                                target.executeCommand(issue.id, 'add %s %s' % (pcf.name, v))
+                                    else:
+                                        for v in source_cf_value:
+                                            target.executeCommand(issue.id, 'add %s %s' % (pcf.name, v))
+                                else:
+                                    if source_cf_value is None:
+                                        source_cf_value = target.getProjectCustomField(projectId, pcf.name).emptyText
+                                    if pcf.type.lower() == 'date':
+                                        m = re.match(r'(\d{10})(?:\d{3})?', source_cf_value)
+                                        if m:
+                                            source_cf_value = datetime.datetime.fromtimestamp(
+                                                int(m.group(1))).strftime('%Y-%m-%d')
+                                    elif pcf.type.lower() == 'period':
+                                        source_cf_value = '%sm' % source_cf_value
+                                    target.executeCommand(issue.id, '%s %s' % (pcf.name, source_cf_value))
+
                     if sync_workitems:
                         workitems = source.getWorkItems(issue.id)
                         if workitems:
-                            print "Process workitems for issue [ " + issue.id + "]"
-                            try:
-                                target.importWorkItems(issue.id, workitems)
-                            except youtrack.YouTrackException, e:
-                                if e.response.status == 404:
-                                    print "WARN: Target YouTrack doesn't support workitems importing."
-                                    print "WARN: Workitems won't be imported."
-                                    sync_workitems = False
-                                else:
-                                    print "ERROR: Skipping workitems because of error:" + str(e)
+                            existing_workitems = dict()
+                            target_workitems = target.getWorkItems(issue.id)
+                            if target_workitems:
+                                for w in target_workitems:
+                                    _id = '%s\n%s\n%s' % (w.date, w.authorLogin, w.duration)
+                                    if hasattr(w, 'description'):
+                                        _id += '\n%s' % w.description
+                                    existing_workitems[_id] = w
+                            new_workitems = []
+                            for w in workitems:
+                                _id = '%s\n%s\n%s' % (w.date, w.authorLogin, w.duration)
+                                if hasattr(w, 'description'):
+                                    _id += '\n%s' % w.description
+                                if _id not in existing_workitems:
+                                    new_workitems.append(w)
+                            if new_workitems:
+                                print "Process workitems for issue [ " + issue.id + "]"
+                                try:
+                                    target.importWorkItems(issue.id, new_workitems)
+                                except youtrack.YouTrackException, e:
+                                    if e.response.status == 404:
+                                        print "WARN: Target YouTrack doesn't support workitems importing."
+                                        print "WARN: Workitems won't be imported."
+                                        sync_workitems = False
+                                    else:
+                                        print "ERROR: Skipping workitems because of error:" + str(e)
 
                     print "Process attachments for issue [%s]" % issue.id
                     existing_attachments = dict()
