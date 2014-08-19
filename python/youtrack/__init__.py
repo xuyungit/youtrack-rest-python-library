@@ -195,6 +195,9 @@ class Issue(YouTrackObject):
         else:
             return self.attachments
 
+    def deleteAttachment(self, attachment):
+        return self.youtrack.deleteAttachment(self.id, attachment.id)
+
     def getLinks(self, outwardOnly=False):
         if getattr(self, 'links', None) is None:
             return self.youtrack.getLinks(self.id, outwardOnly)

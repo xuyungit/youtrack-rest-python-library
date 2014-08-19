@@ -150,6 +150,9 @@ class Connection(object):
         f = urllib2.urlopen(urllib2.Request(self.url + url, headers=self.headers))
         return f
 
+    def deleteAttachment(self, issue_id, attachment_id):
+        return self._req('DELETE', '/issue/%s/attachment/%s' % (issue_id, attachment_id))
+
     def createAttachmentFromAttachment(self, issueId, a):
         try:
             content = a.getContent()

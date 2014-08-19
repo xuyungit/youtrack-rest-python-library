@@ -35,9 +35,11 @@ Usage:
 Options:
     -h,  Show this help and exit
     -a,  Import attachments only
+    -r,  Replace old attachments with new ones (remove and re-import)
     -p,  Covert period values (used as workaroud for JT-19362)
     -t,  Time Tracking settings in format "days_in_a_week:hours_in_a_day"
 """ % os.path.basename(sys.argv[0])
+
 
 def main():
     global convert_period_values
@@ -46,7 +48,7 @@ def main():
     attachments_only = False
     try:
         params = {}
-        opts, args = getopt.getopt(sys.argv[1:], 'hapt:')
+        opts, args = getopt.getopt(sys.argv[1:], 'harpt:')
         for opt, val in opts:
             if opt == '-h':
                 usage()
@@ -55,6 +57,8 @@ def main():
                 convert_period_values = True
             elif opt == '-a':
                 attachments_only = True
+            elif opt == '-r':
+                params['replace_attachments'] = True
             elif opt == '-t':
                 if ':' in val:
                     d, h = val.split(':')
@@ -78,11 +82,11 @@ def main():
     if attachments_only:
         import_attachments_only(source_url, source_login, source_password,
                                 target_url, target_login, target_password,
-                                project_ids)
+                                project_ids, params=params)
     else:
         youtrack2youtrack(source_url, source_login, source_password,
                           target_url, target_login, target_password,
-                          project_ids)
+                          project_ids, params=params)
 
 def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_importer):
     source_bundle = source.getBundle(bundle_type, bundle_name)
@@ -186,10 +190,12 @@ def period_to_minutes(value):
 
 
 def youtrack2youtrack(source_url, source_login, source_password, target_url, target_login, target_password,
-                      project_ids, query = ''):
+                      project_ids, query='', params=None):
     if not len(project_ids):
         print "You should sign at least one project to import"
         return
+    if params is None:
+        params = {}
 
     source = Connection(source_url, source_login, source_password)
     target = Connection(target_url, target_login,
@@ -343,7 +349,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                     existing_attachments = dict()
                     try:
                         for a in target.getAttachments(issue.id):
-                            existing_attachments[a.name + '\n' + a.created] = True
+                            existing_attachments[a.name + '\n' + a.created] = a
                     except youtrack.YouTrackException, e:
                         if e.response.status == 404:
                             print "Skip importing attachments because issue %s doesn't exist" % issue.id
@@ -354,8 +360,9 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
 
                     users = set([])
                     for a in issue.getAttachments():
-                        if a.name + '\n' + a.created in existing_attachments:
-                            print "Skip attachment '%s' (created: %s) because it's already exists" % (a.name.encode('utf-8'), a.created)
+                        if a.name + '\n' + a.created in existing_attachments and not params.get('replace_attachments'):
+                            print "Skip attachment '%s' (created: %s) because it's already exists" \
+                                  % (a.name.encode('utf-8'), a.created)
                             continue
                         attachments.append(a)
                         author = a.getAuthor()
@@ -372,6 +379,16 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                         except BaseException, e:
                             print("Cant import attachment [ %s ]" % a.name.encode('utf-8'))
                             print repr(e)
+                            continue
+                        if params.get('replace_attachments'):
+                            try:
+                                old_attachment = existing_attachments.get(a.name + '\n' + a.created)
+                                if old_attachment:
+                                    print 'Deleting old attachment'
+                                    target.deleteAttachment(issue.id, old_attachment.id)
+                            except BaseException, e:
+                                print "Cannot delete attachment '%s' from issue %s" % (a.name.encode('utf-8'), issue.id)
+                                print e
 
             except Exception, e:
                 print('Cant process issues from ' + str(start) + ' to ' + str(start + max))
@@ -386,10 +403,12 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
 
 def import_attachments_only(source_url, source_login, source_password,
                             target_url, target_login, target_password,
-                            project_ids):
+                            project_ids, params=None):
     if not project_ids:
         print 'No projects to import. Exit...'
         return
+    if params is None:
+        params = {}
     start = 0
     max = 20
     source = Connection(source_url, source_login, source_password)
@@ -407,7 +426,7 @@ def import_attachments_only(source_url, source_login, source_password,
                     existing_attachments = dict()
                     try:
                         for a in target.getAttachments(issue.id):
-                            existing_attachments[a.name + '\n' + a.created] = True
+                            existing_attachments[a.name + '\n' + a.created] = a
                     except youtrack.YouTrackException, e:
                         if e.response.status == 404:
                             print "Skip importing attachments because issue %s doesn't exist" % issue.id
@@ -418,8 +437,9 @@ def import_attachments_only(source_url, source_login, source_password,
 
                     users = set([])
                     for a in issue.getAttachments():
-                        if a.name + '\n' + a.created in existing_attachments:
-                            print "Skip attachment '%s' (created: %s) because it already exists" % (a.name.encode('utf-8'), a.created)
+                        if a.name + '\n' + a.created in existing_attachments and not params.get('replace_attachments'):
+                            print "Skip attachment '%s' (created: %s) because it's already exists" \
+                                  % (a.name.encode('utf-8'), a.created)
                             continue
                         attachments.append(a)
                         author = a.getAuthor()
@@ -434,6 +454,16 @@ def import_attachments_only(source_url, source_login, source_password,
                         except BaseException, e:
                             print 'Cannot import attachment [ %s ]' % a.name.encode('utf-8')
                             print repr(e)
+                            continue
+                        if params.get('replace_attachments'):
+                            try:
+                                old_attachment = existing_attachments.get(a.name + '\n' + a.created)
+                                if old_attachment:
+                                    print 'Deleting old attachment'
+                                    target.deleteAttachment(issue.id, old_attachment.id)
+                            except BaseException, e:
+                                print "Cannot delete attachment '%s' from issue %s" % (a.name.encode('utf-8'), issue.id)
+                                print e
             except Exception, e:
                 print 'Cannot process issues from %d to %d' % (start, start + max)
                 traceback.print_exc()
