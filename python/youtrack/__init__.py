@@ -388,6 +388,8 @@ class WorkItem(YouTrackObject):
         for e in xml.childNodes:
             if e.tagName == 'author':
                 self.authorLogin = e.getAttribute('login')
+            elif e.tagName.lower() == 'worktype':
+                self['worktype'] = self._text(e.getElementsByTagName('name')[0])
             else:
                 self[e.tagName] = self._text(e)
     

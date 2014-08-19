@@ -845,6 +845,8 @@ class Connection(object):
         xml += '<duration>%s</duration>' % work_item.duration
         if hasattr(work_item, 'description') and work_item.description is not None:
             xml += '<description>%s</description>' % escape(work_item.description)
+        if hasattr(work_item, 'worktype') and work_item.worktype is not None:
+            xml += '<worktype><name>%s</name></worktype>' % work_item.worktype
         xml += '</workItem>'
         if isinstance(xml, unicode):
             xml = xml.encode('utf-8')
@@ -859,6 +861,8 @@ class Connection(object):
             xml += '<duration>%s</duration>' % work_item.duration
             if hasattr(work_item, 'description') and work_item.description is not None:
                 xml += '<description>%s</description>' % escape(work_item.description)
+            if hasattr(work_item, 'worktype') and work_item.worktype is not None:
+                xml += '<worktype><name>%s</name></worktype>' % work_item.worktype
             xml += '<author login=%s></author>' % quoteattr(work_item.authorLogin)
             xml += '</workItem>'
         if isinstance(xml, unicode):
