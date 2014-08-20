@@ -21,7 +21,7 @@ hours_in_a_day = 8
 def usage():
     print """
 Usage:
-    %s [-p] [-t TIME_SETTINGS] s_url s_user s_pass t_url t_user t_pass [project_id ...]
+    %s [OPTIONS] s_url s_user s_pass t_url t_user t_pass [project_id ...]
 
     s_url         Source YouTrack URL
     s_user        Source YouTrack user
@@ -37,8 +37,10 @@ Options:
     -c,  Add new comments to target issues
     -f,  Sync custom field values
     -r,  Replace old attachments with new ones (remove and re-import)
+    -d,  Disable users caching
     -p,  Covert period values (used as workaroud for JT-19362)
-    -t,  Time Tracking settings in format "days_in_a_week:hours_in_a_day"
+    -t TIME_SETTINGS,
+         Time Tracking settings in format "days_in_a_week:hours_in_a_day"
 """ % os.path.basename(sys.argv[0])
 
 
@@ -49,7 +51,7 @@ def main():
     attachments_only = False
     try:
         params = {}
-        opts, args = getopt.getopt(sys.argv[1:], 'harcfpt:')
+        opts, args = getopt.getopt(sys.argv[1:], 'harcdfpt:')
         for opt, val in opts:
             if opt == '-h':
                 usage()
@@ -64,6 +66,8 @@ def main():
                 params['add_new_comments'] = True
             elif opt == '-f':
                 params['sync_custom_fields'] = True
+            elif opt == '-d':
+                params['enable_user_caching'] = False
             elif opt == '-t':
                 if ':' in val:
                     d, h = val.split(':')
@@ -213,7 +217,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
         except youtrack.YouTrackException, e:
             print e.message
 
-    user_importer = UserImporter(source, target, caching_users=True)
+    user_importer = UserImporter(source, target, caching_users=params.get('enable_user_caching', True))
     link_importer = LinkImporter(target)
 
     #create all projects with minimum info and project lead set
@@ -506,7 +510,7 @@ def import_attachments_only(source_url, source_login, source_password,
     max = 20
     source = Connection(source_url, source_login, source_password)
     target = Connection(target_url, target_login, target_password)
-    user_importer = UserImporter(source, target, caching_users=True)
+    user_importer = UserImporter(source, target, caching_users=params.get('enable_user_caching', True))
     for projectId in project_ids:
         while True:
             try:
