@@ -337,8 +337,14 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                 link_importer.addAvailableIssues(issues)
 
                 for issue in issues:
-                    if params.get('add_new_comments'):
+                    try:
                         target_issue = target.getIssue(issue.id)
+                    except youtrack.YouTrackException, e:
+                        print "Cannot get target issue"
+                        print e
+                        continue
+
+                    if params.get('add_new_comments'):
                         target_comments = dict()
                         max_id = 0
                         for c in target_issue.getComments():
@@ -358,7 +364,6 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                             skip_fields.append(tt_settings.TimeSpentField)
                         skip_fields = [name.lower() for name in skip_fields]
                         for pcf in [pcf for pcf in project_custom_fields if pcf.name.lower() not in skip_fields]:
-                            target_issue = target.getIssue(issue.id)
                             target_cf_value = None
                             if pcf.name in target_issue:
                                 target_cf_value = target_issue[pcf.name]
