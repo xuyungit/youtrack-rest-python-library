@@ -354,8 +354,9 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                         for c in issue.getComments():
                             if c.created > max_id or c.created not in target_comments:
                                 group = None
-                                if hasattr(c, 'group'):
-                                    group = c.group
+                                if hasattr(c, 'permittedGroup'):
+                                    group = c.permittedGroup
+                                print c
                                 target.executeCommand(issue.id, 'comment', c.text, group, c.author)
 
                     if params.get('sync_custom_fields'):
