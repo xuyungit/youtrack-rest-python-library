@@ -362,32 +362,45 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                             target_cf_value = None
                             if pcf.name in target_issue:
                                 target_cf_value = target_issue[pcf.name]
+                                if isinstance(target_cf_value, (list, tuple)):
+                                    target_cf_value = set(target_cf_value)
+                                elif target_cf_value == target.getProjectCustomField(projectId, pcf.name).emptyText:
+                                    target_cf_value = None
                             source_cf_value = None
                             if pcf.name in issue:
                                 source_cf_value = issue[pcf.name]
-                            if source_cf_value != target_cf_value:
                                 if isinstance(source_cf_value, (list, tuple)):
-                                    if target_cf_value is not None:
-                                        for v in target_cf_value:
-                                            if v not in source_cf_value:
-                                                target.executeCommand(issue.id, 'remove %s %s' % (pcf.name, v))
-                                        for v in source_cf_value:
-                                            if v not in target_cf_value:
-                                                target.executeCommand(issue.id, 'add %s %s' % (pcf.name, v))
-                                    else:
-                                        for v in source_cf_value:
-                                            target.executeCommand(issue.id, 'add %s %s' % (pcf.name, v))
-                                else:
-                                    if source_cf_value is None:
-                                        source_cf_value = target.getProjectCustomField(projectId, pcf.name).emptyText
-                                    if pcf.type.lower() == 'date':
-                                        m = re.match(r'(\d{10})(?:\d{3})?', source_cf_value)
-                                        if m:
-                                            source_cf_value = datetime.datetime.fromtimestamp(
-                                                int(m.group(1))).strftime('%Y-%m-%d')
-                                    elif pcf.type.lower() == 'period':
-                                        source_cf_value = '%sm' % source_cf_value
-                                    target.executeCommand(issue.id, '%s %s' % (pcf.name, source_cf_value))
+                                    source_cf_value = set(source_cf_value)
+                                elif source_cf_value == source.getProjectCustomField(projectId, pcf.name).emptyText:
+                                    source_cf_value = None
+                            if source_cf_value == target_cf_value:
+                                continue
+                            if isinstance(source_cf_value, set) or isinstance(target_cf_value, set):
+                                if source_cf_value is None:
+                                    source_cf_value = set()
+                                elif not isinstance(source_cf_value, set):
+                                    source_cf_value = {source_cf_value}
+                                if target_cf_value is None:
+                                    target_cf_value = set()
+                                elif not isinstance(target_cf_value, set):
+                                    target_cf_value = {target_cf_value}
+                                for v in target_cf_value:
+                                    if v not in source_cf_value:
+                                        target.executeCommand(issue.id, 'remove %s %s' % (pcf.name, v))
+                                for v in source_cf_value:
+                                    if v not in target_cf_value:
+                                        target.executeCommand(issue.id, 'add %s %s' % (pcf.name, v))
+                            else:
+                                if source_cf_value is None:
+                                    source_cf_value = target.getProjectCustomField(projectId, pcf.name).emptyText
+                                if pcf.type.lower() == 'date':
+                                    m = re.match(r'(\d{10})(?:\d{3})?', str(source_cf_value))
+                                    if m:
+                                        source_cf_value = datetime.datetime.fromtimestamp(
+                                            int(m.group(1))).strftime('%Y-%m-%d')
+                                elif pcf.type.lower() == 'period':
+                                    source_cf_value = '%sm' % source_cf_value
+                                target.executeCommand(issue.id, '%s %s' % (pcf.name, source_cf_value))
 
                     if sync_workitems:
                         workitems = source.getWorkItems(issue.id)
