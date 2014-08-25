@@ -432,13 +432,13 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                 continue
                             if isinstance(source_cf_value, set) or isinstance(target_cf_value, set):
                                 if source_cf_value is None:
-                                    source_cf_value = set()
+                                    source_cf_value = set([])
                                 elif not isinstance(source_cf_value, set):
-                                    source_cf_value = {source_cf_value}
+                                    source_cf_value = set([source_cf_value])
                                 if target_cf_value is None:
-                                    target_cf_value = set()
+                                    target_cf_value = set([])
                                 elif not isinstance(target_cf_value, set):
-                                    target_cf_value = {target_cf_value}
+                                    target_cf_value = set([target_cf_value])
                                 for v in target_cf_value:
                                     if v not in source_cf_value:
                                         target.executeCommand(issue.id, 'remove %s %s' % (pcf.name, v))
