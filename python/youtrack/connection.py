@@ -63,11 +63,13 @@ class Connection(object):
                         'Cache-Control': 'no-cache'}
 
     @relogin_on_401
-    def _req(self, method, url, body=None, ignoreStatus=None):
+    def _req(self, method, url, body=None, ignoreStatus=None, content_type=None):
         headers = self.headers
         if method == 'PUT' or method == 'POST':
             headers = headers.copy()
-            headers['Content-Type'] = 'application/xml; charset=UTF-8'
+            if content_type is None:
+                content_type = 'application/xml; charset=UTF-8'
+            headers['Content-Type'] = content_type
             headers['Content-Length'] = str(len(body)) if body else '0'
 
         response, content = self.http.request((self.baseUrl + url).encode('utf-8'), method, headers=headers, body=body)
@@ -109,10 +111,11 @@ class Connection(object):
 
     def createIssue(self, project, assignee, summary, description, priority=None, type=None, subsystem=None, state=None,
                     affectsVersion=None,
-                    fixedVersion=None, fixedInBuild=None):
+                    fixedVersion=None, fixedInBuild=None, permittedGroup=None):
         params = {'project': project,
-                  'summary': summary,
-                  'description': description}
+                  'summary': summary}
+        if description is not None:
+            params['description'] = description
         if assignee is not None:
             params['assignee'] = assignee
         if priority is not None:
@@ -129,8 +132,13 @@ class Connection(object):
             params['fixVersion'] = fixedVersion
         if fixedInBuild is not None:
             params['fixedInBuild'] = fixedInBuild
+        if permittedGroup is not None:
+            params['permittedGroup'] = permittedGroup
 
-        return self._reqXml('PUT', '/issue?' + urllib.urlencode(params), '')
+        return self._req('PUT', '/issue', urllib.urlencode(params), content_type='application/x-www-form-urlencoded')
+
+    def deleteIssue(self, issue_id):
+        return self._req('DELETE', '/issue/%s' % issue_id)
 
     def get_changes_for_issue(self, issue):
         return [youtrack.IssueChange(change, self) for change in
@@ -730,6 +738,9 @@ class Connection(object):
 
         if run_as is not None:
             params['runAs'] = run_as
+        for p in params:
+            if isinstance(params[p], unicode):
+                params[p] = params[p].encode('utf-8')
 
         response, content = self._req('POST', '/issue/' + issueId + "/execute?" +
                                               urllib.urlencode(params), body='')

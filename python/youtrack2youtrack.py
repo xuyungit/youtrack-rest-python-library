@@ -34,6 +34,7 @@ Usage:
 Options:
     -h,  Show this help and exit
     -a,  Import attachments only
+    -n,  Create new issues instead of importing them
     -c,  Add new comments to target issues
     -f,  Sync custom field values
     -r,  Replace old attachments with new ones (remove and re-import)
@@ -51,7 +52,7 @@ def main():
     attachments_only = False
     try:
         params = {}
-        opts, args = getopt.getopt(sys.argv[1:], 'harcdfpt:')
+        opts, args = getopt.getopt(sys.argv[1:], 'hanrcdfpt:')
         for opt, val in opts:
             if opt == '-h':
                 usage()
@@ -68,6 +69,8 @@ def main():
                 params['sync_custom_fields'] = True
             elif opt == '-d':
                 params['enable_user_caching'] = False
+            elif opt == '-n':
+                params['create_new_issues'] = True
             elif opt == '-t':
                 if ':' in val:
                     d, h = val.split(':')
@@ -198,6 +201,39 @@ def period_to_minutes(value):
     return str(minutes)
 
 
+def create_issues(target, issues, last_issue_number):
+    for issue in issues:
+        summary = issue.summary
+        if isinstance(summary, unicode):
+            summary = summary.encode('utf-8')
+        description = None
+        if hasattr(issue, 'description'):
+            description = issue.description
+            if isinstance(description, unicode):
+                description = description.encode('utf-8')
+        group = None
+        if hasattr(issue, 'permittedGroup'):
+            group = issue.permittedGroup
+            if isinstance(group, unicode):
+                group = group.encode('utf-8')
+        # This loop creates and then deletes issues that don't exists in source database.
+        # In other words this loop creates holes in issue numeration.
+        next_number = last_issue_number + 1
+        number_gap = int(issue.numberInProject) - last_issue_number - 1
+        for i in range(next_number, next_number + number_gap):
+            print 'Creating and deleting dummy issue #%s-%d' % (issue.projectShortName, i)
+            target.createIssue(issue.projectShortName, None, 'dummy', None)
+            target.deleteIssue('%s-%d' % (issue.projectShortName, i))
+        try:
+            print 'Creating issue from source issue with id %s' % issue.id
+            target.createIssue(issue.projectShortName, None, summary, description, permittedGroup=group)
+        except youtrack.YouTrackException, e:
+            print 'Cannot create issue from source issue with id %s' % issue.id
+            print e
+        last_issue_number = int(issue.numberInProject)
+    return last_issue_number
+
+
 def youtrack2youtrack(source_url, source_login, source_password, target_url, target_login, target_password,
                       project_ids, query='', params=None):
     if not len(project_ids):
@@ -207,8 +243,8 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
         params = {}
 
     source = Connection(source_url, source_login, source_password)
-    target = Connection(target_url, target_login,
-        target_password) #, proxy_info = httplib2.ProxyInfo(socks.PROXY_TYPE_HTTP, 'localhost', 8888)
+    target = Connection(target_url, target_login, target_password)
+    #, proxy_info = httplib2.ProxyInfo(socks.PROXY_TYPE_HTTP, 'localhost', 8888)
 
     print "Import issue link types"
     for ilt in source.getIssueLinkTypes():
@@ -259,6 +295,8 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                 create_bundle_from_bundle(source, target, source_cf.defaultBundle, source_cf.type, user_importer)
             target.createCustomField(source_cf)
 
+    failed_commands = []
+
     for projectId in project_ids:
         source = Connection(source_url, source_login, source_password)
         target = Connection(target_url, target_login,
@@ -296,6 +334,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
         tt_settings = target.getProjectTimeTrackingSettings(projectId)
 
         print "Import issues"
+        last_created_issue_number = 0
 
         while True:
             try:
@@ -316,7 +355,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                 users = set([])
 
                 for issue in issues:
-                    print "Collect users for issue [ " + issue.id + "]"
+                    print "Collect users for issue [%s]" % issue.id
 
                     users.add(issue.getReporter())
                     if issue.hasAssignee(): users.add(issue.getAssignee())
@@ -325,7 +364,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                     if issue.hasVoters(): users.update(issue.getVoters())
                     for comment in issue.getComments(): users.add(comment.getAuthor())
 
-                    print "Collect links for issue [ " + issue.id + "]"
+                    print "Collect links for issue [%s]" % issue.id
                     link_importer.collectLinks(issue.getLinks(True))
                     #links.extend(issue.getLinks(True))
 
@@ -337,7 +376,10 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                 user_importer.importUsersRecursively(users)
 
                 print "Create issues [" + str(len(issues)) + "]"
-                print target.importIssues(projectId, project.name + ' Assignees', issues)
+                if params.get('create_new_issues'):
+                    last_created_issue_number = create_issues(target, issues, last_created_issue_number)
+                else:
+                    print target.importIssues(projectId, project.name + ' Assignees', issues)
                 link_importer.addAvailableIssues(issues)
 
                 for issue in issues:
@@ -360,8 +402,11 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                 group = None
                                 if hasattr(c, 'permittedGroup'):
                                     group = c.permittedGroup
-                                print c
-                                target.executeCommand(issue.id, 'comment', c.text, group, c.author)
+                                try:
+                                    target.executeCommand(issue.id, 'comment', c.text, group, c.author)
+                                except youtrack.YouTrackException, e:
+                                    print 'Cannot add comment to issue '
+                                    print e
 
                     if params.get('sync_custom_fields'):
                         skip_fields = []
@@ -410,7 +455,13 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                             int(m.group(1))).strftime('%Y-%m-%d')
                                 elif pcf.type.lower() == 'period':
                                     source_cf_value = '%sm' % source_cf_value
-                                target.executeCommand(issue.id, '%s %s' % (pcf.name, source_cf_value))
+                                command = '%s %s' % (pcf.name, source_cf_value)
+                                try:
+                                    target.executeCommand(issue.id, command)
+                                except youtrack.YouTrackException, e:
+                                    if e.response.status == 412 and e.response.reason.find('Precondition Failed') > -1:
+                                        print 'WARN: Some workflow blocks following command: %s' % command
+                                        failed_commands.append((issue.id, command))
 
                     if sync_workitems:
                         workitems = source.getWorkItems(issue.id)
@@ -496,6 +547,15 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
 
     print "Import issue links"
     link_importer.importCollectedLinks()
+
+    print "Trying to execute failed commands once again"
+    for issue_id, command in failed_commands:
+        try:
+            print 'Executing command on issue %s: %s' % (issue_id, command)
+            target.executeCommand(issue_id, command)
+        except youtrack.YouTrackException, e:
+            print 'Failed to execute command for issue #%s: %s' % (issue_id, command)
+            print e
 
 
 def import_attachments_only(source_url, source_login, source_password,
