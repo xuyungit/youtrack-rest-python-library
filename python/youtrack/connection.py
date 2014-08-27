@@ -73,10 +73,9 @@ class Connection(object):
             headers['Content-Length'] = str(len(body)) if body else '0'
 
         response, content = self.http.request((self.baseUrl + url).encode('utf-8'), method, headers=headers, body=body)
+        content = content.translate(None, '\0')
         if response.status != 200 and response.status != 201 and (ignoreStatus != response.status):
             raise youtrack.YouTrackException(url, response, content)
-
-        #print response
 
         return response, content
 
