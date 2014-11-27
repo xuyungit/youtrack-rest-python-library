@@ -6,6 +6,7 @@ import re
 from xml.dom import Node
 from xml.dom.minidom import Document
 from xml.dom import minidom
+from xml.sax.saxutils import escape, quoteattr
 
 
 EXISTING_FIELD_TYPES = {
@@ -208,6 +209,8 @@ class Issue(YouTrackObject):
 class Comment(YouTrackObject):
     def __init__(self, xml=None, youtrack=None):
         YouTrackObject.__init__(self, xml, youtrack)
+        if not hasattr(self, 'text'):
+            self.text = ''
 
     def getAuthor(self):
         return self.youtrack.getUser(self.author)
@@ -485,7 +488,7 @@ class Bundle(YouTrackObject):
             self.values = []
 
     def toXml(self):
-        result = '<%s name="%s">' % (self._bundle_tag_name, self.name.encode('utf-8'))
+        result = '<%s name="%s">' % (self._bundle_tag_name, escape(self.name.encode('utf-8')))
         result += ''.join(v.toXml() for v in self.values)
         result += '</%s>' % self._bundle_tag_name
         return result
@@ -519,8 +522,8 @@ class BundleElement(YouTrackObject):
                 elem = elem.encode('utf-8')
             if isinstance(value, unicode):
                 value = value.encode('utf-8')
-            result += ' %s="%s"' % (elem, str(value))
-        result += ">%s</%s>" % (self.name.encode('utf-8'), self.element_name)
+            result += ' %s="%s"' % (escape(elem), escape(str(value)))
+        result += ">%s</%s>" % (escape(self.name.encode('utf-8')), self.element_name)
         return result
 
     def _update(self, xml):

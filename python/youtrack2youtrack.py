@@ -124,12 +124,20 @@ def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_imp
             users_to_add = [user for user in source_bundle.users if
                             user.login.capitalize() not in target_bundle_user_logins]
             for user in users_to_add:
-                target.addValueToBundle(target_bundle, user)
+                try:
+                    target.addValueToBundle(target_bundle, user)
+                except YouTrackException, e:
+                    if e.response.status != 409:
+                        raise e
             return
         target_value_names = [element.name.encode('utf-8').capitalize() for element in target_bundle.values]
         for value in [elem for elem in source_bundle.values if
                       elem.name.encode('utf-8').strip().capitalize() not in target_value_names]:
-            target.addValueToBundle(target_bundle, value)
+            try:
+                target.addValueToBundle(target_bundle, value)
+            except YouTrackException, e:
+                if e.response.status != 409:
+                    raise e
     else:
         users = set([])
         groups = []
@@ -316,9 +324,9 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
             if hasattr(pcf, "bundle"):
                 create_bundle_from_bundle(source, target, pcf.bundle, source.getCustomField(pcf.name).type, user_importer)
 
-        target_project_fields = [pcf.name for pcf in target.getProjectCustomFields(projectId)]
+        target_project_fields = [pcf.name.lower() for pcf in target.getProjectCustomFields(projectId)]
         for field in project_custom_fields:
-            if field.name in target_project_fields:
+            if field.name.lower() in target_project_fields:
                 if hasattr(field, 'bundle'):
                     if field.bundle != target.getProjectCustomField(projectId, field.name).bundle:
                         target.deleteProjectCustomField(projectId, field.name)
@@ -509,8 +517,13 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                     users = set([])
                     for a in issue.getAttachments():
                         if a.name + '\n' + a.created in existing_attachments and not params.get('replace_attachments'):
-                            print "Skip attachment '%s' (created: %s) because it's already exists" \
-                                  % (a.name.encode('utf-8'), a.created)
+                            if isinstance(a.name, unicode):
+                                a.name = a.name.encode('utf-8')
+                            try:
+                                print "Skip attachment '%s' (created: %s) because it's already exists" \
+                                      % (a.name, a.created)
+                            except Exception:
+                                pass
                             continue
                         attachments.append(a)
                         author = a.getAuthor()
