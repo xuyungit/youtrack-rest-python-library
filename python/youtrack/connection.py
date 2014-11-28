@@ -832,6 +832,12 @@ class Connection(object):
         return self.createIssueLinkTypeDetailed(ilt.name, ilt.outwardName, ilt.inwardName, ilt.directed)
 
     def createIssueLinkTypeDetailed(self, name, outwardName, inwardName, directed):
+        if isinstance(name, unicode):
+            name = name.encode('utf-8')
+        if isinstance(outwardName, unicode):
+            outwardName = outwardName.encode('utf-8')
+        if isinstance(inwardName, unicode):
+            inwardName = inwardName.encode('utf-8')
         return self._put('/admin/issueLinkType/' + urlquote(name) + '?' +
                          urllib.urlencode({'outwardName': outwardName,
                                            'inwardName': inwardName,
