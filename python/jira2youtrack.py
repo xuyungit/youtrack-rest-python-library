@@ -212,6 +212,8 @@ def get_value_presentation(field_type, value):
 
 
 def process_attachments(source, target, issue):
+    if 'attachment' not in issue['fields']:
+        return
     for attach in issue['fields']['attachment']:
         attachment = JiraAttachment(attach, source)
         if 'author' in attach:
