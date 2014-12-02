@@ -121,6 +121,16 @@ class CsvYouTrackImportConfig(YouTrackImportConfig):
     def get_project(self, issue):
         project_name_key = self.get_key_for_field_name(self.get_project_name_key())
         project_id_key = self.get_key_for_field_name(self.get_project_id_key())
+        if project_name_key not in issue:
+            print(u'ERROR: issue does not contain a project_name key called "%s"' % project_name_key)
+            print(u'issue: ')
+            print(issue)
+            raise Exception("Bad csv file")
+        if project_id_key not in issue:
+            print(u'ERROR: issue does not contain a project_id key called "%s"' % project_id_key)
+            print(u'issue: ')
+            print(issue)
+            raise Exception("Bad csv file")
         project_name = issue[project_name_key]
         project_id = issue.get(project_id_key, re.sub(r'\W+', "", project_name))
         return project_id, project_name
