@@ -279,7 +279,7 @@ class Connection(object):
         self.importUsers([user])
 
     def createUserDetailed(self, login, fullName, email, jabber):
-        print self.importUsers([{'login': login, 'fullName': fullName, 'email': email, 'jabber': jabber}])
+        self.importUsers([{'login': login, 'fullName': fullName, 'email': email, 'jabber': jabber}])
 
     #        return self._put('/admin/user/' + login + '?' +
     #                         'password=' + password +
