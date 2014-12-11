@@ -110,7 +110,7 @@ def main():
                 end = int(m['n1'])
             if end and end < start:
                 raise ValueError('Bad argument => %s' % project)
-            projects.append((m['pid'], start, end))
+            projects.append((m['pid'].upper(), start, end))
         else:
             raise ValueError('Bad argument => %s' % project)
 
@@ -390,7 +390,7 @@ def jira2youtrack(source_url, source_login, source_password,
             pass
 
         while True:
-            _end = start + chunk_size
+            _end = start + chunk_size - 1
             if end and _end > end:
                 _end = end
             if start > _end:
@@ -398,16 +398,21 @@ def jira2youtrack(source_url, source_login, source_password,
             print 'Processing issues: %s [%d .. %d]' % (project_id, start, _end)
             try:
                 jira_issues = source.get_issues(project_id, start, _end)
-                if not jira_issues:
+                start += chunk_size
+                if not (jira_issues or end):
                     break
+                # Filter out moved issues
+                jira_issues = [issue for issue in jira_issues
+                               if issue['key'].startswith('%s-' % project_id)]
                 if flags & FI_ISSUES:
+                    issues2import = [to_yt_issue(target, issue, project_id)
+                                     for issue in jira_issues]
+                    if not issues2import:
+                        continue
                     target.importIssues(
-                        project_id, '%s assignees' % project_id,
-                        [to_yt_issue(target, issue, project_id)
-                         for issue in jira_issues])
+                        project_id, '%s assignees' % project_id, issues2import)
             except YouTrackException, e:
                 print e
-                start += chunk_size
                 continue
             for issue in jira_issues:
                 if flags & FI_LINKS:
@@ -419,9 +424,6 @@ def jira2youtrack(source_url, source_login, source_password,
                                         flags & FI_REPLACE_ATTACHMENTS > 0)
                 if flags & FI_WORK_LOG:
                     process_worklog(source, target, issue)
-            if len(jira_issues) < chunk_size:
-                break
-            start += chunk_size
 
     target.importLinks(issue_links)
 
