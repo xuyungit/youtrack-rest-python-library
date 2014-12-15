@@ -273,7 +273,7 @@ def create_value(target, value, field_name, field_type, project_id):
         if 'name' in value:
             target.addValueToBundle(bundle, value['name'])
         elif 'value' in value:
-            target.addValueToBundle(bundle, value['value'])
+            target.addValueToBundle(bundle, re.sub(r'[<>/]', '_', value['value']))
     except YouTrackException:
         pass
 
