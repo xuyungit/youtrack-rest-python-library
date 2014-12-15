@@ -177,6 +177,7 @@ def ignore_youtrack_exceptions(f):
 def process_labels(target, issue):
     tags = issue['fields']['labels']
     for tag in tags:
+        tag = re.sub(r'[,&<>]', '_', tag)
         try:
             target.executeCommand(issue['key'], 'tag ' + tag)
         except YouTrackException:
@@ -425,7 +426,8 @@ def jira2youtrack(source_url, source_login, source_password,
                 if flags & FI_WORK_LOG:
                     process_worklog(source, target, issue)
 
-    target.importLinks(issue_links)
+    if flags & FI_LINKS:
+        target.importLinks(issue_links)
 
 
 class JiraAttachment(object):
