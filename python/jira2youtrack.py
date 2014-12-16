@@ -251,18 +251,13 @@ def create_value(target, value, field_name, field_type, project_id):
         value['name'] = value['name'].replace(' ', '_')
     if field_name in jira.EXISTING_FIELDS:
         return
-    # TODO: Remove this debug code...
-    # for i in range(10):
-    #     import time
-    #     print field_name.lower(), [field.name.lower() for field in target.getProjectCustomFields(project_id)]
-    #     time.sleep(1)
     if field_name.lower() not in [field.name.lower() for field in target.getProjectCustomFields(project_id)]:
         if field_name.lower() not in [field.name.lower() for field in target.getCustomFields()]:
             target.createCustomFieldDetailed(field_name, field_type, False, True, False, {})
         if field_type in ['string', 'date', 'integer', 'period']:
             target.createProjectCustomFieldDetailed(project_id, field_name, "No " + field_name)
         else:
-            bundle_name = field_name + " bundle"
+            bundle_name = "%s: %s" % (project_id, field_name)
             create_bundle_safe(target, bundle_name, field_type)
             target.createProjectCustomFieldDetailed(project_id, field_name, "No " + field_name, {'bundle': bundle_name})
     if field_type in ['string', 'date', 'integer', 'period']:
@@ -270,10 +265,7 @@ def create_value(target, value, field_name, field_type, project_id):
     project_field = target.getProjectCustomField(project_id, field_name)
     bundle = target.getBundle(field_type, project_field.bundle)
     try:
-        if 'name' in value:
-            target.addValueToBundle(bundle, value['name'])
-        elif 'value' in value:
-            target.addValueToBundle(bundle, re.sub(r'[<>/]', '_', value['value']))
+        target.addValueToBundle(bundle, re.sub(r'[<>/]', '_', get_value_presentation(field_type, value)))
     except YouTrackException:
         pass
 
