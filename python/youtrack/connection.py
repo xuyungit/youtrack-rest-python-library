@@ -28,7 +28,7 @@ def relogin_on_401(f):
         try:
             return f(self, *args, **kwargs)
         except youtrack.YouTrackException, e:
-            if e.response.status != 401:
+            if e.response.status not in (401, 403):
                 raise e
             self._login(*self._credentials)
             return f(self, *args, **kwargs)
