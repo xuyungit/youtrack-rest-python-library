@@ -13,7 +13,8 @@ class UserImporter(object):
         self.source = source
         self.target = target
         self.caching_users = caching_users
-        self.created_user_logins = set([user.login for user in target.getUsers()]) if caching_users else set([])
+        #self.created_user_logins = set([user.login for user in target.getUsers()]) if caching_users else set([])
+        self.created_user_logins = set([])
         self.created_group_names = set([group.name for group in target.getGroups()])
         self.created_role_names = set([role.name for role in target.getRoles()])
         self.created_project_ids = set(target.getProjectIds())
