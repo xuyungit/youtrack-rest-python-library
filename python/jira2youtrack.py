@@ -48,6 +48,8 @@ Options:
     -l,  Import issue links
     -t,  Import Jira labels (convert to YT tags)
     -w,  Import Jira work logs
+    -m,  Comma-separated list of field mappings.
+         Mapping format is JIRA_FIELD_NAME:YT_FIELD_NAME@FIELD_TYPE
 """ % os.path.basename(sys.argv[0])
 
 # Primary import options
@@ -63,8 +65,9 @@ FI_REPLACE_ATTACHMENTS = 0x80
 
 def main():
     flags = 0
+    field_mappings = dict()
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'harltiw')
+        opts, args = getopt.getopt(sys.argv[1:], 'harltiwm:')
         for opt, val in opts:
             if opt == '-h':
                 usage()
@@ -81,6 +84,15 @@ def main():
                 flags |= FI_LABELS
             elif opt == '-w':
                 flags |= FI_WORK_LOG
+            elif opt == '-m':
+                print val, args
+                for mapping in val.split(','):
+                    m = re.match(r'^([^:]+):([^@]+)@(.+)$', mapping)
+                    if not m:
+                        print 'Bad field mapping (skipped): %s' % mapping
+                        continue
+                    jira_name, yt_name, field_type = m.groups()
+                    field_mappings[jira_name.lower()] = (yt_name, field_type)
     except getopt.GetoptError, e:
         print e
         usage()
@@ -115,18 +127,21 @@ def main():
             raise ValueError('Bad argument => %s' % project)
 
     jira2youtrack(j_url, j_login, j_password,
-                  y_url, y_login, y_password, projects, flags)
+                  y_url, y_login, y_password, projects, flags, field_mappings)
 
 
-def to_yt_issue(target, issue, project_id):
+def to_yt_issue(target, issue, project_id, fields_mapping=None):
     yt_issue = Issue()
     yt_issue['comments'] = []
     yt_issue.numberInProject = issue['key'][(issue['key'].find('-') + 1):]
     for field, value in issue['fields'].items():
         if value is None:
             continue
-        field_name = get_yt_field_name(field)
-        field_type = get_yt_field_type(field_name)
+        if fields_mapping and field.lower() in fields_mapping:
+            field_name, field_type = fields_mapping[field.lower()]
+        else:
+            field_name = get_yt_field_name(field)
+            field_type = get_yt_field_type(field_name)
         if field_name == 'comment':
             for comment in value['comments']:
                 yt_comment = Comment()
@@ -140,7 +155,6 @@ def to_yt_issue(target, issue, project_id):
                 yt_comment.created = to_unix_date(comment['created'])
                 yt_comment.updated = to_unix_date(comment['updated'])
                 yt_issue['comments'].append(yt_comment)
-
         elif (field_name is not None) and (field_type is not None):
             if isinstance(value, list) and len(value):
                 yt_issue[field_name] = []
@@ -255,11 +269,26 @@ def create_value(target, value, field_name, field_type, project_id):
         if field_name.lower() not in [field.name.lower() for field in target.getCustomFields()]:
             target.createCustomFieldDetailed(field_name, field_type, False, True, False, {})
         if field_type in ['string', 'date', 'integer', 'period']:
-            target.createProjectCustomFieldDetailed(project_id, field_name, "No " + field_name)
+            try:
+                target.createProjectCustomFieldDetailed(
+                    project_id, field_name, "No " + field_name)
+            except YouTrackException, e:
+                if e.response.status == 409:
+                    print e
+                else:
+                    raise e
         else:
             bundle_name = "%s: %s" % (project_id, field_name)
             create_bundle_safe(target, bundle_name, field_type)
-            target.createProjectCustomFieldDetailed(project_id, field_name, "No " + field_name, {'bundle': bundle_name})
+            try:
+                target.createProjectCustomFieldDetailed(
+                    project_id, field_name, "No " + field_name,
+                    {'bundle': bundle_name})
+            except YouTrackException, e:
+                if e.response.status == 409:
+                    print e
+                else:
+                    raise e
     if field_type in ['string', 'date', 'integer', 'period']:
         return
     project_field = target.getProjectCustomField(project_id, field_name)
@@ -363,7 +392,8 @@ def process_worklog(source, target, issue):
 
 
 def jira2youtrack(source_url, source_login, source_password,
-                  target_url, target_login, target_password, projects, flags):
+                  target_url, target_login, target_password,
+                  projects, flags, field_mappings):
     print 'source_url   : ' + source_url
     print 'source_login : ' + source_login
     print 'target_url   : ' + target_url
@@ -398,8 +428,11 @@ def jira2youtrack(source_url, source_login, source_password,
                 jira_issues = [issue for issue in jira_issues
                                if issue['key'].startswith('%s-' % project_id)]
                 if flags & FI_ISSUES:
-                    issues2import = [to_yt_issue(target, issue, project_id)
-                                     for issue in jira_issues]
+                    issues2import = []
+                    for issue in jira_issues:
+                        issues2import.append(
+                            to_yt_issue(target, issue,
+                                        project_id, field_mappings))
                     if not issues2import:
                         continue
                     target.importIssues(
