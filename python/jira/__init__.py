@@ -25,7 +25,7 @@ FIELD_TYPES = {
     u'assignee'                 : u'user[1]',
     u'customfield_10250'        : u'string',
     u'timeestimate'             : u'integer',
-    u'components'               : u'ownedField[*]',
+    u'Subsystem'                : u'ownedField[*]',
     u'resolution'               : u'state[1]',
     u'timeoriginalestimate'     : u'integer',
     u'aggregatetimeoriginalestimate'    : u'integer',
@@ -44,7 +44,8 @@ FIELD_NAMES = {
     u'status' : 'State',
     u'issuetype' : 'Type',
     u'resolutiondate' : 'resolved',
-    u'timeoriginalestimate': 'Estimation'
+    u'timeoriginalestimate': 'Estimation',
+    u'components': 'Subsystem'
 }
 
 EXISTING_FIELDS = ['numberInProject', 'projectShortName', 'summary', 'description', 'created',
