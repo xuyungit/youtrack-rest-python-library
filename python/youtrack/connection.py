@@ -350,7 +350,6 @@ class Connection(object):
         xml = '<issues>\n'
         issue_records = dict([])
 
-
         for issue in issues:
             record = ""
             record += '  <issue>\n'
@@ -842,6 +841,9 @@ class Connection(object):
                          urllib.urlencode({'outwardName': outwardName,
                                            'inwardName': inwardName,
                                            'directed': directed}))
+
+    def getEvents(self, issue_id):
+        return self._get('/event/issueEvents/' + urlquote(issue_id))
 
     def getWorkItems(self, issue_id):
         try:
