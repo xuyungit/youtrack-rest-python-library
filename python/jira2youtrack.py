@@ -14,6 +14,7 @@ import youtrack
 from youtrack.connection import Connection
 from youtrack.importHelper import create_bundle_safe
 
+
 jt_fields = []
 
 _debug = os.environ.get('DEBUG')
@@ -50,6 +51,8 @@ Options:
     -w,  Import Jira work logs
     -m,  Comma-separated list of field mappings.
          Mapping format is JIRA_FIELD_NAME:YT_FIELD_NAME@FIELD_TYPE
+    -M,  Comma-separated list of field value mappings.
+         Mapping format is YT_FIELD_NAME:JIRA_FIELD_VALUE=YT_FIELD_VALUE[;...]
 """ % os.path.basename(sys.argv[0])
 
 # Primary import options
@@ -66,8 +69,9 @@ FI_REPLACE_ATTACHMENTS = 0x80
 def main():
     flags = 0
     field_mappings = dict()
+    value_mappings = dict()
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'harltiwm:')
+        opts, args = getopt.getopt(sys.argv[1:], 'harltiwm:M:')
         for opt, val in opts:
             if opt == '-h':
                 usage()
@@ -85,14 +89,27 @@ def main():
             elif opt == '-w':
                 flags |= FI_WORK_LOG
             elif opt == '-m':
-                print val, args
                 for mapping in val.split(','):
                     m = re.match(r'^([^:]+):([^@]+)@(.+)$', mapping)
                     if not m:
-                        print 'Bad field mapping (skipped): %s' % mapping
-                        continue
+                        raise ValueError('Bad field mapping (skipped): %s' % mapping)
                     jira_name, yt_name, field_type = m.groups()
-                    field_mappings[jira_name.lower()] = (yt_name, field_type)
+                    field_mappings[jira_name.lower()] = (yt_name.lower(), field_type)
+            elif opt == '-M':
+                for mapping in val.split(','):
+                    m = re.match(r'^([^:]+):(.+)$', mapping)
+                    if not m:
+                        raise ValueError('Bad field mapping (skipped): %s' % mapping)
+                    field_name, v_mappings = m.groups()
+                    field_name = field_name.lower()
+                    for vm in v_mappings.split(';'):
+                        m = re.match(r'^([^=]+)=(.+)$', vm)
+                        if not m:
+                            raise ValueError('Bad field mapping (skipped): %s' % vm)
+                        jira_value, yt_value = m.groups()
+                        if field_name not in value_mappings:
+                            value_mappings[field_name] = dict()
+                        value_mappings[field_name][jira_value.lower()] = yt_value
     except getopt.GetoptError, e:
         print e
         usage()
@@ -127,10 +144,12 @@ def main():
             raise ValueError('Bad argument => %s' % project)
 
     jira2youtrack(j_url, j_login, j_password,
-                  y_url, y_login, y_password, projects, flags, field_mappings)
+                  y_url, y_login, y_password, projects,
+                  flags, field_mappings, value_mappings)
 
 
-def to_yt_issue(target, issue, project_id, fields_mapping=None):
+def to_yt_issue(target, issue, project_id,
+                fields_mapping=None, value_mappings=None):
     yt_issue = Issue()
     yt_issue['comments'] = []
     yt_issue.numberInProject = issue['key'][(issue['key'].find('-') + 1):]
@@ -159,6 +178,10 @@ def to_yt_issue(target, issue, project_id, fields_mapping=None):
             if isinstance(value, list) and len(value):
                 yt_issue[field_name] = []
                 for v in value:
+                    if isinstance(v, dict):
+                        v['name'] = get_yt_field_value(field_name, v['name'], value_mappings)
+                    else:
+                        v = get_yt_field_value(field_name, v, value_mappings)
                     create_value(target, v, field_name, field_type, project_id)
                     yt_issue[field_name].append(get_value_presentation(field_type, v))
             else:
@@ -170,6 +193,10 @@ def to_yt_issue(target, issue, project_id, fields_mapping=None):
                 if isinstance(value, int):
                     value = str(value)
                 if len(value):
+                    if isinstance(value, dict):
+                        value['name'] = get_yt_field_value(field_name, value['name'], value_mappings)
+                    else:
+                        value = get_yt_field_value(field_name, value, value_mappings)
                     create_value(target, value, field_name, field_type, project_id)
                     yt_issue[field_name] = get_value_presentation(field_type, value)
         elif _debug:
@@ -210,6 +237,19 @@ def get_yt_field_type(yt_name):
     if result is None:
         result = youtrack.EXISTING_FIELD_TYPES.get(yt_name)
     return result
+
+
+def get_yt_field_value(field_name, jira_value, value_mappings):
+    new_value = jira_value
+    if isinstance(field_name, unicode):
+        field_name = field_name.encode('utf-8')
+    if isinstance(jira_value, unicode):
+        jira_value = jira_value.encode('utf-8')
+    try:
+        new_value = value_mappings[field_name.lower()][jira_value.lower()]
+    except KeyError:
+        pass
+    return new_value
 
 
 def process_links(target, issue, yt_links):
@@ -393,7 +433,7 @@ def process_worklog(source, target, issue):
 
 def jira2youtrack(source_url, source_login, source_password,
                   target_url, target_login, target_password,
-                  projects, flags, field_mappings):
+                  projects, flags, field_mappings, value_mappings):
     print 'source_url   : ' + source_url
     print 'source_login : ' + source_login
     print 'target_url   : ' + target_url
@@ -431,8 +471,8 @@ def jira2youtrack(source_url, source_login, source_password,
                     issues2import = []
                     for issue in jira_issues:
                         issues2import.append(
-                            to_yt_issue(target, issue,
-                                        project_id, field_mappings))
+                            to_yt_issue(target, issue, project_id,
+                                        field_mappings, value_mappings))
                     if not issues2import:
                         continue
                     target.importIssues(

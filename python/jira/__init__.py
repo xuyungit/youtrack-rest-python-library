@@ -50,6 +50,7 @@ FIELD_NAMES = {
 EXISTING_FIELDS = ['numberInProject', 'projectShortName', 'summary', 'description', 'created',
                    'updated', 'updaterName', 'resolved', 'reporterName']
 
+
 class JiraException(Exception):
     def __init__(self, *args, **kwargs):
         super(JiraException, self).__init__(*args, **kwargs)
