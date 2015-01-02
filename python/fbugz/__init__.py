@@ -73,7 +73,10 @@ class FBAttachment(object) :
         parse_qs = cgi.parse_qs(parsed_url.query)
         file_name_arg = 'sFileName'
         if file_name_arg in parse_qs.keys():
-            self.name = parse_qs[file_name_arg][0]
+            attachment_name = parse_qs[file_name_arg][0]
+            if isinstance(attachment_name, unicode):
+                attachment_name = attachment_name.encode('utf-8')
+            self.name = attachment_name
         else:
             self.name = 'Attachment'
         self.authorLogin = 'guest'
