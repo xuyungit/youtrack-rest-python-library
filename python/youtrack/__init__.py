@@ -147,7 +147,10 @@ class Issue(YouTrackObject):
                 self.links = [Link(e, youtrack) for e in xml.getElementsByTagName('issueLink')]
             else:
                 self.links = None
-
+            if len(xml.getElementsByTagName('tag')) > 0:
+                self.tags = [self._text(e) for e in xml.getElementsByTagName('tag')]
+            else:
+                self.tags = None
             if len(xml.getElementsByTagName('attachments')) > 0:
                 self.attachments = [Attachment(e, youtrack) for e in xml.getElementsByTagName('fileUrl')]
             else:
