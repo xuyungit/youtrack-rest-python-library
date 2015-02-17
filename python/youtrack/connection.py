@@ -723,7 +723,7 @@ class Connection(object):
         xml = minidom.parseString(content)
         return [youtrack.Link(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
-    def executeCommand(self, issueId, command, comment=None, group=None, run_as=None):
+    def executeCommand(self, issueId, command, comment=None, group=None, run_as=None, disable_notifications=False):
         if isinstance(command, unicode):
             command = command.encode('utf-8')
         params = {'command': command}
@@ -736,6 +736,10 @@ class Connection(object):
 
         if run_as is not None:
             params['runAs'] = run_as
+
+        if disable_notifications:
+            params['disableNotifications'] = disable_notifications
+
         for p in params:
             if isinstance(params[p], unicode):
                 params[p] = params[p].encode('utf-8')
