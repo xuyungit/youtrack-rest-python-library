@@ -220,10 +220,10 @@ def process_labels(target, issue):
     for tag in tags:
         tag = re.sub(r'[,&<>]', '_', tag)
         try:
-            target.executeCommand(issue['key'], 'tag ' + tag)
+            target.executeCommand(issue['key'], 'tag ' + tag, disable_notifications=True)
         except YouTrackException:
             tag = re.sub(r'[\s-]', '_', tag)
-            target.executeCommand(issue['key'], 'tag ' + tag)
+            target.executeCommand(issue['key'], 'tag ' + tag, disable_notifications=True)
 
 
 def get_yt_field_name(jira_name):
@@ -420,6 +420,7 @@ def process_attachments(source, target, issue, replace=False):
 def process_worklog(source, target, issue):
     worklog = source.get_worklog(issue['key'])
     if worklog:
+        work_items = []
         for w in worklog['worklogs']:
             create_user(target, w['author'])
             work_item = WorkItem()
@@ -428,7 +429,9 @@ def process_worklog(source, target, issue):
             if 'comment' in w:
                 work_item.description = w['comment']
             work_item.duration = int(int(w['timeSpentSeconds']) / 60)
-            target.createWorkItem(issue['key'], work_item)
+            work_items.append(work_item)
+            #target.createWorkItem(issue['key'], work_item)
+        target.importWorkItems(issue['key'], work_items)
 
 
 def jira2youtrack(source_url, source_login, source_password,
