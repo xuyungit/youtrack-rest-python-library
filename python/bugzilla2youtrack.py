@@ -321,7 +321,7 @@ def bugzilla2youtrack(target_url, target_login, target_pass, bz_db, bz_host, bz_
                     print "Processing attachment [ %s ]" % (attach.name.encode('utf8'))
                     content = StringIO(attach.content)
                     target.createAttachment(str(product_id) + "-" + str(issue[get_number_in_project_field_name()]),
-                        attach.name, content, attach.reporter
+                        attach.name, content, attach.reporter.login
                         , created=str(int(attach.created) * 1000))
         print "Importing issues to project [ %s ] finished" % product_id
 
