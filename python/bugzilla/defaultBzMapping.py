@@ -27,9 +27,11 @@ bugzilla.FIELD_NAMES = {
     "voters"            :   "voterName",
     "assigned_to"       :   "Assignee",
     "bug_severity"      :   "Severity",
-    "bug_status"        :   "Status",
+    "resolution"        :   "State",
+    "bug_status"        :   "State",
     "creation_ts"       :   "created",
     "OS"                :   "Platform",
+    "rep_platform"      :   "Platform",
     "short_desc"        :   "summary",
     "cc"                :   "watcherName",
     "delta_ts"          :   "updated",
@@ -85,3 +87,27 @@ bugzilla.CF_TYPES = {
 # if we need to import empty comments
 bugzilla.ACCEPT_EMPTY_COMMENTS = False
 bugzilla.BZ_DB_CHARSET = 'utf8'
+
+bugzilla.USE_STATE_MAP    = True
+bugzilla.STATE_STATUS     = "bug_status"
+bugzilla.STATE_RESOLUTION = "resolution"
+
+
+bugzilla.SATE_MAP = {
+    "UNCONFIRMED"   :"Open",
+    "CONFIRMED"     :"Submitted",
+    "NEW"           :"Submitted",
+    "ASSIGNED"      :"Submitted",
+    "REOPENED"      :"Reopened",
+    "FIXED"         :"Fixed",
+    "INVALID"       :"Won\'t fix",
+    "WONTFIX"       :"Won\'t fix",
+    "MOVED"         :"Won\'t fix",
+    "LATER"         :"Won\'t fix",
+    "INVALID"       :"Won\'t fix",
+    "IN_PROGRESS"   :"In Progress",
+    "DUPLICATE"     :"Duplicate",
+    "VERIFIED"      :"Verified",
+    "RESOLVED"      :{"Fixed" : "Fixed", "*" : "Won\'t fix", "DUPLICATE" :"Duplicate", }
+
+}
