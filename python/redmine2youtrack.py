@@ -195,8 +195,21 @@ class RedmineImporter(object):
         if user_id not in self._users:
             redmine_user = self._source.get_user(user_id)
             user = youtrack.User()
-            user.login = redmine_user.login or 'guest'
-            user.email = redmine_user.mail or 'example@example.com'
+            try:
+                user.email = redmine_user.mail
+            except AttributeError:
+                pass
+            try:
+                user.login = redmine_user.login
+            except AttributeError:
+                if hasattr(user, 'email'):
+                    user.login = user.email
+                else:
+                    user.login = 'guest'
+                print 'Cannot get login for user id=%s, set it to "%s"' % \
+                    (user_id, user.login)
+            #user.login = redmine_user.login or 'guest'
+            #user.email = redmine_user.mail or 'example@example.com'
             if user.login != 'guest':
                 user.fullName = redmine_user.firstname + ' ' + redmine_user.lastname
             else:
