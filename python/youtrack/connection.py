@@ -1024,7 +1024,7 @@ class Connection(object):
             elif isinstance(value, youtrack.Group):
                 request += "group/%s/" % urlquote(value.name.encode('utf-8'))
             else:
-                request += "individual/%s/" % value
+                request += "individual/%s/" % urlquote(value)
         return self._put(request)
 
     def removeValueFromBundle(self, bundle, value):
