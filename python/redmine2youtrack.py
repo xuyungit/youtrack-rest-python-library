@@ -211,7 +211,14 @@ class RedmineImporter(object):
             #user.login = redmine_user.login or 'guest'
             #user.email = redmine_user.mail or 'example@example.com'
             if user.login != 'guest':
-                user.fullName = redmine_user.firstname + ' ' + redmine_user.lastname
+                if redmine_user.firstname is None and redmine_user.lastname is None:
+                    user.fullName = user.login
+                elif redmine_user.firstname is None:
+                    user.fullName = redmine_user.lastname
+                elif redmine_user.lastname is None:
+                    user.fullName = redmine_user.firstname
+                else:
+                    user.fullName = redmine_user.firstname + ' ' + redmine_user.lastname
             else:
                 user.created = True
             if hasattr(redmine_user, 'groups'):
