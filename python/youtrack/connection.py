@@ -201,7 +201,7 @@ class Connection(object):
             except Exception:
                 pass
             raise e
-            
+
 
     def _process_attachmnets(self, authorLogin, content, contentLength, contentType, created, group, issueId, name,
                              url_prefix='/issue/'):
@@ -341,7 +341,7 @@ class Connection(object):
         bad_fields = ['id', 'projectShortName', 'votes', 'commentsCount',
                       'historyUpdated', 'updatedByFullName', 'updaterFullName',
                       'reporterFullName', 'links', 'attachments', 'jiraId',
-                      'entityId']
+                      'entityId', 'tags']
 
         tt_settings = self.getProjectTimeTrackingSettings(projectId)
         if tt_settings and tt_settings.Enabled and tt_settings.TimeSpentField:
@@ -412,9 +412,15 @@ class Connection(object):
         if isinstance(url, unicode):
             url = url.encode('utf-8')
         result = self._reqXml('PUT', url, xml, 400)
+
+        for issue in issues:
+            self.add_tags(projectId, issue)
+
         if (result == "") and (len(issues) > 1):
             for issue in issues:
                 self.importIssues(projectId, assigneeGroup, [issue])
+                self.add_tags(projectId, [issue])
+
         response = ""
         try:
             response = result.toxml().encode('utf-8')
@@ -444,6 +450,29 @@ class Connection(object):
                         sys.stderr.write(issue_records[id])
                 print ""
         return response
+
+    def add_tags(self, projectId, issue):
+        # Add tags
+        for issueAttr in issue:
+            attrValue = issue[issueAttr]
+            if issueAttr == 'tags':
+                tag_command = ''
+                if isinstance(attrValue, list) or getattr(attrValue, '__iter__', False):
+                    for v in attrValue:
+                        if isinstance(v, unicode):
+                            v = v.encode('utf-8')
+                        tag_command += 'tag ' + escape(v.strip()) + ' '
+                else:
+                    tag_command += 'tag ' + escape(attrValue.strip())
+
+                url = '/issue/' + urlquote(projectId) + '-' + urlquote(issue['numberInProject']) + \
+                      '/execute?command=' + urlquote(tag_command)
+                if isinstance(url, unicode):
+                    url = url.encode('utf-8')
+                sys.stdout.write(url)
+                tag_result = self._reqXml('POST', url, '', 400)
+                if tag_result != '':
+                    sys.stderr.write(tag_result)
 
     def getProjects(self):
         projects = {}
@@ -957,7 +986,7 @@ class Connection(object):
         xml += '</settings>'
         return self._reqXml(
             'PUT', '/admin/project/' + projectId + '/timetracking', xml)
-      
+
     def getAllBundles(self, field_type):
         field_type = self.get_field_type(field_type)
         if field_type == "enum":
