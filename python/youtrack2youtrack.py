@@ -37,6 +37,7 @@ Options:
     -n,  Create new issues instead of importing them
     -c,  Add new comments to target issues
     -f,  Sync custom field values
+    -T,  Sync tags (tags will be created on behalf of logged in user)
     -r,  Replace old attachments with new ones (remove and re-import)
     -d,  Disable users caching
     -p,  Covert period values (used as workaroud for JT-19362)
@@ -52,7 +53,7 @@ def main():
     attachments_only = False
     try:
         params = {}
-        opts, args = getopt.getopt(sys.argv[1:], 'hanrcdfpt:')
+        opts, args = getopt.getopt(sys.argv[1:], 'hanrcdfpt:T')
         for opt, val in opts:
             if opt == '-h':
                 usage()
@@ -71,6 +72,8 @@ def main():
                 params['enable_user_caching'] = False
             elif opt == '-n':
                 params['create_new_issues'] = True
+            elif opt == '-T':
+                params['sync_tags'] = True
             elif opt == '-t':
                 if ':' in val:
                     d, h = val.split(':')
@@ -126,7 +129,7 @@ def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_imp
             for user in users_to_add:
                 try:
                     target.addValueToBundle(target_bundle, user)
-                except YouTrackException, e:
+                except youtrack.YouTrackException, e:
                     if e.response.status != 409:
                         raise e
             return
@@ -135,7 +138,7 @@ def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_imp
                       elem.name.encode('utf-8').strip().capitalize() not in target_value_names]:
             try:
                 target.addValueToBundle(target_bundle, value)
-            except YouTrackException, e:
+            except youtrack.YouTrackException, e:
                 if e.response.status != 409:
                     raise e
     else:
@@ -398,6 +401,19 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                         print e
                         continue
 
+                    if params.get('sync_tags') and issue.tags:
+                        try:
+                            for tag in issue.tags:
+                                tag = re.sub(r'[,&<>]', '_', tag)
+                                try:
+                                    target.executeCommand(issue.id, 'tag ' + tag, disable_notifications=True)
+                                except youtrack.YouTrackException:
+                                    tag = re.sub(r'[\s-]', '_', tag)
+                                    target.executeCommand(issue.id, 'tag ' + tag, disable_notifications=True)
+                        except youtrack.YouTrackException, e:
+                            print "Cannot sync tags for issue " + issue.id
+                            print e
+
                     if params.get('add_new_comments'):
                         target_comments = dict()
                         max_id = 0
@@ -411,7 +427,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                 if hasattr(c, 'permittedGroup'):
                                     group = c.permittedGroup
                                 try:
-                                    target.executeCommand(issue.id, 'comment', c.text, group, c.author)
+                                    target.executeCommand(issue.id, 'comment', c.text, group, c.author, disable_notifications=True)
                                 except youtrack.YouTrackException, e:
                                     print 'Cannot add comment to issue '
                                     print e
@@ -449,10 +465,10 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                     target_cf_value = set([target_cf_value])
                                 for v in target_cf_value:
                                     if v not in source_cf_value:
-                                        target.executeCommand(issue.id, 'remove %s %s' % (pcf.name, v))
+                                        target.executeCommand(issue.id, 'remove %s %s' % (pcf.name, v), disable_notifications=True)
                                 for v in source_cf_value:
                                     if v not in target_cf_value:
-                                        target.executeCommand(issue.id, 'add %s %s' % (pcf.name, v))
+                                        target.executeCommand(issue.id, 'add %s %s' % (pcf.name, v), disable_notifications=True)
                             else:
                                 if source_cf_value is None:
                                     source_cf_value = target.getProjectCustomField(projectId, pcf.name).emptyText
@@ -465,7 +481,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                     source_cf_value = '%sm' % source_cf_value
                                 command = '%s %s' % (pcf.name, source_cf_value)
                                 try:
-                                    target.executeCommand(issue.id, command)
+                                    target.executeCommand(issue.id, command, disable_notifications=True)
                                 except youtrack.YouTrackException, e:
                                     if e.response.status == 412 and e.response.reason.find('Precondition Failed') > -1:
                                         print 'WARN: Some workflow blocks following command: %s' % command
@@ -565,7 +581,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
     for issue_id, command in failed_commands:
         try:
             print 'Executing command on issue %s: %s' % (issue_id, command)
-            target.executeCommand(issue_id, command)
+            target.executeCommand(issue_id, command, disable_notifications=True)
         except youtrack.YouTrackException, e:
             print 'Failed to execute command for issue #%s: %s' % (issue_id, command)
             print e

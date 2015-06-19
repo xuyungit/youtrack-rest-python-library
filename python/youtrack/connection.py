@@ -222,7 +222,7 @@ class Connection(object):
         #headers['Content-Type'] = contentType
         # name without extension to workaround: http://youtrack.jetbrains.net/issue/JT-6110
         params = {#'name': os.path.splitext(name)[0],
-                  'authorLogin': authorLogin,
+                  'authorLogin': authorLogin.encode('utf-8'),
         }
         if group is not None:
             params["group"] = group
@@ -341,7 +341,7 @@ class Connection(object):
         bad_fields = ['id', 'projectShortName', 'votes', 'commentsCount',
                       'historyUpdated', 'updatedByFullName', 'updaterFullName',
                       'reporterFullName', 'links', 'attachments', 'jiraId',
-                      'entityId']
+                      'entityId', 'tags']
 
         tt_settings = self.getProjectTimeTrackingSettings(projectId)
         if tt_settings and tt_settings.Enabled and tt_settings.TimeSpentField:
