@@ -1,4 +1,11 @@
 #! /usr/bin/env python
+
+# **********************************************************
+# *  Since YouTrack 6.5 there is build-in JIRA import.     *
+# *  Please use this script only in case you have problems *
+# *  with the native implementation.                       *
+# **********************************************************
+
 import calendar
 import functools
 import os
@@ -22,6 +29,12 @@ _debug = os.environ.get('DEBUG')
 
 def usage():
     print """
+**********************************************************
+*  Since YouTrack 6.5 there is build-in JIRA import.     *
+*  Please use this script only in case you have problems *
+*  with the native implementation.                       *
+**********************************************************
+
 Usage:
     %s [OPTIONS] j_url j_user j_pass y_url y_user y_pass [project_id[,range] ...]
 
