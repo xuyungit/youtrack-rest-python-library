@@ -14,6 +14,11 @@ class Client(object) :
     def _get_reader(self):
         return csv.reader(open(self._file_path, "r"), delimiter=csvClient.CSV_DELIMITER)
 
+    def get_rows(self):
+        reader = self._get_reader()
+        for row in reader:
+            yield row
+
     def get_issues(self):
         reader = self._get_reader()
         reader.next()

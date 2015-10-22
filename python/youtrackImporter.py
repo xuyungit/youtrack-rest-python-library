@@ -77,7 +77,7 @@ class YouTrackImporter(object):
                 [self._to_yt_issue(issue, project_id) for issue in issues])
             for issue in issues:
                 issue_id = self._get_issue_id(issue)
-                issue_attachments = self._get_attachments(issue_id)
+                issue_attachments = self._get_attachments(issue)
                 yt_issue_id = u'%s-%s' % (project_id, issue_id)
                 self._import_attachments(yt_issue_id, issue_attachments)
 

@@ -47,8 +47,9 @@ class ZendeskYouTrackImporter(YouTrackImporter):
         yt_comment.created = self.to_unix_date(comment[u'created_at'])
         return yt_comment
 
-    def _get_attachments(self, issue_id):
+    def _get_attachments(self, issue):
         result = []
+        issue_id = self._get_issue_id(issue)
         for audit in self._source.get_ticket_audits(issue_id):
             created = audit[u'created_at']
             for event in audit[u'events']:

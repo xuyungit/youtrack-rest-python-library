@@ -1,3 +1,6 @@
+#! /usr/bin/env python
+
+import os
 import re
 import calendar
 import time
@@ -17,7 +20,13 @@ from youtrack.importHelper import create_custom_field
 
 def main():
     source_file, target_url, target_login, target_password = sys.argv[1:5]
-    csv2youtrack(source_file, target_url, target_login, target_password)
+    comments_file = None
+    attachments_file = None
+    if len(sys.argv) > 5:
+        comments_file = sys.argv[5]
+    if len(sys.argv) > 6:
+        attachments_file = sys.argv[6]
+    csv2youtrack(source_file, target_url, target_login, target_password, comments_file, attachments_file)
 
 
 def get_project(issue):
@@ -26,19 +35,40 @@ def get_project(issue):
             return re.sub(r'\W+', "", issue[key])
 
 
-def csv2youtrack(source_file, target_url, target_login, target_password):
+def csv2youtrack(source_file, target_url, target_login, target_password, comments_file=None, attachments_file=None):
     target = Connection(target_url, target_login, target_password)
     source = Client(source_file)
+    source_comments = None
+    if comments_file:
+        source_comments = Client(comments_file)
+
+    source_attachments = None
+    if attachments_file:
+        source_attachments = Client(attachments_file)
 
     config = CsvYouTrackImportConfig(csvClient.FIELD_NAMES, csvClient.FIELD_TYPES)
-    importer = CsvYouTrackImporter(source, target, config)
+    importer = CsvYouTrackImporter(source, target, config, source_comments, source_attachments)
     importer.import_csv()
 
 
 class CsvYouTrackImporter(YouTrackImporter):
-    def __init__(self, source, target, import_config):
+    def __init__(self, source, target, import_config, source_comments=None, source_attachments=None):
         super(CsvYouTrackImporter, self).__init__(source, target, import_config)
         self._after = 0
+        self._comments = dict()
+        self._attachments = dict()
+        if source_comments:
+            for c in source_comments.get_rows():
+                issue_id = '%s-%s' % (c[0], c[1])
+                if issue_id not in self._comments:
+                    self._comments[issue_id] = []
+                self._comments[issue_id].append(c[2:])
+        if source_attachments:
+            for a in source_attachments.get_rows():
+                issue_id = '%s-%s' % (a[0], a[1])
+                if issue_id not in self._attachments:
+                    self._attachments[issue_id] = []
+                self._attachments[issue_id].append(a[2:])
 
     def import_csv(self, new_projects_owner_login=u'root'):
         projects = self._get_projects()
@@ -51,6 +81,12 @@ class CsvYouTrackImporter(YouTrackImporter):
             result.author = u'guest'
             result.text = comment
             result.created = str(int(time.time() * 1000))
+            return result
+        if isinstance(comment, list):
+            result = Comment()
+            result.author = self._to_yt_user(comment[0]).login
+            result.created = self._import_config._to_unix_date(comment[1])
+            result.text = comment[2]
             return result
 
     def get_field_value(self, field_name, field_type, value):
@@ -73,6 +109,11 @@ class CsvYouTrackImporter(YouTrackImporter):
         match_result = number_regex.search(issue[self._import_config.get_key_for_field_name(u'numberInProject')])
         return match_result.group()
 
+    def _get_yt_issue_id(self, issue):
+        number_in_project = self._get_issue_id(issue)
+        project_id = issue[self._import_config.get_key_for_field_name(self._import_config.get_project_id_key())]
+        return '%s-%s' % (project_id, number_in_project)
+
     def _get_issues(self, project_id):
         issues = self._source.get_issues()
         for issue in issues:
@@ -80,7 +121,23 @@ class CsvYouTrackImporter(YouTrackImporter):
                 yield issue
 
     def _get_comments(self, issue):
+        if self._comments:
+            return self._comments.get(self._get_yt_issue_id(issue), [])
         return issue[self._import_config.get_key_for_field_name(u'comments')]
+
+    def _get_attachments(self, issue):
+        if self._attachments:
+            return self._attachments.get(self._get_yt_issue_id(issue), [])
+        return []
+
+    def _import_attachments(self, issue_id, issue_attachments):
+        for attach in issue_attachments:
+            author = self._to_yt_user(attach[0]).login
+            created = self._import_config._to_unix_date(attach[1])
+            name = os.path.basename(attach[2])
+            content = open(attach[2], 'r')
+            #group = attach[3]
+            self._target.importAttachment(issue_id, name, content, author, None, None, created, '')
 
     def _get_custom_field_names(self, project_ids):
         project_name_key = self._import_config.get_key_for_field_name(self._import_config.get_project_name_key())
