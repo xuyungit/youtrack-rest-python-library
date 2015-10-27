@@ -95,6 +95,11 @@ class CsvYouTrackImporter(YouTrackImporter):
             return None
         if field_type == u'date':
             return self._import_config._to_unix_date(value)
+        if re.match(r'^\s*(enum|version|build|ownedfield|user|group)\[\*\]s*$', field_type, re.IGNORECASE):
+            delim = getattr(csvClient, 'VALUE_DELIMITER', csvClient.CSV_DELIMITER)
+            values = re.split(re.escape(delim), value)
+            if len(values) > 1:
+                value = values
         return super(CsvYouTrackImporter, self).get_field_value(field_name, field_type, value)
 
     def _to_yt_user(self, value):
