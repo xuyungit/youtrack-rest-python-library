@@ -573,6 +573,9 @@ class RedmineImporter(object):
         }
         if hasattr(issue, 'relations'):
             for rel in issue.relations:
+                if rel.relation_type not in link_types:
+                    print 'Unsuitable link type: %s. Skipped' % rel.relation_type
+                    continue
                 from_id = rel.issue_id
                 to_id = rel.issue_to_id
                 if rel.relation_type == 'duplicates':
