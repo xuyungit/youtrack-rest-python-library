@@ -128,4 +128,9 @@ mantis.FIELD_TYPES = {
 
 # charset of your mantis database
 mantis.CHARSET = "utf8"
+
+# If True then issues to import to YouTrack will be collected from a project
+# and all it's subprojects.
+# If False then subprojects' issues won't be taken in account.
+mantis.BATCH_SUBPROJECTS = True
   

@@ -342,7 +342,7 @@ def mantis2youtrack(target_url, target_login, target_pass, mantis_db_name, manti
     target = Connection(target_url, target_login, target_pass)
     #connacting to mantis
     client = MantisClient(mantis_db_host, int(mantis_db_port), mantis_db_login,
-        mantis_db_pass, mantis_db_name, mantis.CHARSET)
+        mantis_db_pass, mantis_db_name, mantis.CHARSET, mantis.BATCH_SUBPROJECTS)
     if not len(mantis_project_names):
         print "You should declarer at least one project to import"
         sys.exit()

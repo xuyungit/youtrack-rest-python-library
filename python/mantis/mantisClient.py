@@ -5,7 +5,8 @@ import mantis
 
 
 class MantisClient(object):
-    def __init__(self, host, port, login, password, db_name, charset_name):
+    def __init__(self, host, port, login, password, db_name, charset_name, batch_subprojects):
+        self.batch_subprojects = batch_subprojects
         self.sql_cnx = MySQLdb.connect(host=host, port=port, user=login, passwd=password,
             db=db_name, cursorclass=MySQLdb.cursors.DictCursor, charset=charset_name)
 
@@ -244,8 +245,9 @@ class MantisClient(object):
         return None
 
     def _calculate_project_ids(self, project_id):
-        result = self._get_child_projects_by_project_id(project_id)
-        result.append(int(project_id))
+        result = [int(project_id)]
+        if self.batch_subprojects:
+            result.extend(self._get_child_projects_by_project_id(project_id))
         # TODO: Why do we add projectid=0? Invesigate it!
         #result.append(int(0))
         return result
