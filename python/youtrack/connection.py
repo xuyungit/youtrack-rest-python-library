@@ -166,6 +166,15 @@ class Connection(object):
             contentLength = None
             if 'content-length' in content.headers.dict:
                 contentLength = int(content.headers.dict['content-length'])
+            print 'Importing attachment for issue ', issueId
+            try:
+                print 'Name: ', a.name
+            except Exception, e:
+                print e
+            try:
+                print 'Author: ', a.authorLogin
+            except Exception, e:
+                print e
             return self.importAttachment(issueId, a.name, content, a.authorLogin,
                 contentLength=contentLength,
                 contentType=content.info().type,

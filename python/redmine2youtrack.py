@@ -560,6 +560,8 @@ class RedmineImporter(object):
             return
         for attach in issue.attachments:
             attach.author.login = self._create_user(attach.author).login
+            if not attach.author.login:
+                attach.author.login = 'guest'
             self._target.createAttachmentFromAttachment(
                 self._get_yt_issue_id(issue),
                 RedmineAttachment(attach, self._source))
