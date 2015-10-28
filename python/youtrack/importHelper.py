@@ -1,19 +1,26 @@
 from youtrack import YouTrackException
 
+
+def utf8encode(source):
+    if isinstance(source, unicode):
+        source = source.encode('utf-8')
+    return source
+
+
 def _create_custom_field_prototype(connection, cf_type, cf_name, auto_attached=False, additional_params=dict([])):
     field = _get_custom_field(connection, cf_name)
     if field is not None:
         if field.type != cf_type:
             msg = "Custom field with name [ %s ] already exists. It has type [ %s ] instead of [ %s ]" %\
-                  (cf_name.encode('utf-8'), field.type, cf_type)
+                  (utf8encode(cf_name), field.type, cf_type)
             raise LogicException(msg)
     else:
         connection.createCustomFieldDetailed(cf_name, cf_type, False, True, auto_attached, additional_params)
 
 
 def _get_custom_field(connection, cf_name):
-    existing_fields = [item for item in connection.getCustomFields() if item.name.encode('utf-8').lower() ==
-                                                                        cf_name.encode('utf-8').lower()]
+    existing_fields = [item for item in connection.getCustomFields() if utf8encode(item.name).lower() ==
+                                                                        utf8encode(cf_name).lower()]
     if len(existing_fields):
         return existing_fields[0]
     return None
@@ -103,7 +110,7 @@ def process_custom_field(connection, project_id, cf_type, cf_name, value_names=N
         value_names = []
 
     existing_project_fields = [item for item in connection.getProjectCustomFields(project_id) if
-                               item.name.encode('utf-8') == cf_name]
+                               utf8encode(item.name) == cf_name]
     values_to_add = []
     bundle = None
     if len(existing_project_fields):
@@ -140,7 +147,7 @@ def add_values_to_bundle_safe(connection, bundle, values):
         except YouTrackException, e:
             if e.response.status == 409:
                 print "Value with name [ %s ] already exists in bundle [ %s ]" % \
-                      (value.name.encode('utf-8'), bundle.name.encode('utf-8'))
+                      (utf8encode(value.name), utf8encode(bundle.name))
             else:
                 raise e
 
