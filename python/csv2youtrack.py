@@ -83,8 +83,10 @@ class CsvYouTrackImporter(YouTrackImporter):
             result.created = str(int(time.time() * 1000))
             return result
         if isinstance(comment, list):
+            yt_user = self._to_yt_user(comment[0])
+            self._import_user(yt_user)
             result = Comment()
-            result.author = self._to_yt_user(comment[0]).login
+            result.author = yt_user.login
             result.created = self._import_config._to_unix_date(comment[1])
             result.text = comment[2]
             return result
