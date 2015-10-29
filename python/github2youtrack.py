@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import sys
 import re
 import requests
@@ -6,23 +8,27 @@ import csvClient
 import csv2youtrack
 
 csvClient.FIELD_NAMES = {
-    "Project Name"  :   "project_name",
-    "Project Id"    :   "project_id",
-    "Summary"       :   "summary",
-    "State"         :   "State",
-    "Id"            :   "numberInProject",
-    "Created"       :   "created",
-    "Updated"       :   "updated",
-    "Assignee"      :   "Assignee",
-    "Description"   :   "description",
-    "Labels"        :   "Labels",
-    "Author"        :   "reporterName"
+    "Project Name" : "project_name",
+    "Project Id"   : "project_id",
+    "Summary"      : "summary",
+    "State"        : "State",
+    "Id"           : "numberInProject",
+    "Created"      : "created",
+    "Updated"      : "updated",
+    "Resolved"     : "resolved",
+    "Assignee"     : "Assignee",
+    "Description"  : "description",
+    "Labels"       : "Labels",
+    "Author"       : "reporterName",
+    "Milestone"    : "Fix versions"
 }
 
 csvClient.FIELD_TYPES = {
-    "State"             :   "state[1]",
-    "Assignee"          :   "user[1]",
-    "Labels"            :   "enum[*]"
+    "State"        : "state[1]",
+    "Assignee"     : "user[1]",
+    "Labels"       : "enum[*]",
+    "Fix versions" : "version[*]",
+    "Type"         : "enum[1]"
 }
 
 csvClient.DATE_FORMAT_STRING = "%Y-%m-%dT%H:%M:%SZ"
@@ -48,10 +54,16 @@ def write_issues(r, issues_csvout, comments_csvout, repo, auth):
         raise Exception(r.status_code)
     for issue in r.json():
         labels = []
+        labels_lowercase = []
         for label in issue['labels']:
-            labels.append(label.get(u'name'))
+            label_name = label.get(u'name')
+            if not label_name:
+                continue
+            labels.append(label_name)
+            labels_lowercase.append(label_name)
 
-        labels = csvClient.VALUE_DELIMITER.join([str(x) for x in labels])
+        # TODO: Join writerow
+        #labels = csvClient.VALUE_DELIMITER.join([str(x) for x in labels])
 
         assignee = issue['assignee']
         if assignee:
@@ -60,15 +72,36 @@ def write_issues(r, issues_csvout, comments_csvout, repo, auth):
             assignee = ""
 
         created = issue['created_at']
-        updated = issue['updated_at']
+        updated = issue.get('updated_at', '')
+        resolved = issue.get('closed_at', '')
 
         author = get_last_part_of_url(issue['user'].get(u'url'))
 
         project = get_last_part_of_url(repo)
 
-        issues_csvout.writerow([project, project, issue['number'], issue['state'], issue['title'].encode('utf-8'), issue['body'].encode('utf-8'), created, updated, author, assignee, labels])
+        milestone = issue.get('milestone')
+        if milestone:
+            milestone = milestone['title']
+        else:
+            milestone = ''
+
+        state = issue['state'].lower()
+        if state == 'closed':
+            if 'wontfix' in labels_lowercase or 'invalid' in labels_lowercase:
+                state = "Won't fix"
+            else:
+                state = "Fixed"
+
+        issue_type = 'Task'
+        if 'bug' in labels_lowercase:
+            issue_type = 'Bug'
+
+        issues_csvout.writerow(
+            [project, project, issue['number'], state, issue['title'].encode('utf-8'), issue['body'].encode('utf-8'),
+             created, updated, resolved, author, assignee, csvClient.VALUE_DELIMITER.join([str(l) for l in labels]),
+             issue_type, milestone.encode('utf-8')])
         
-        if 'comments_url' in issue:
+        if int(issue.get('comments', 0)) > 0 and 'comments_url' in issue:
             rc = requests.get(issue['comments_url'], auth=auth)
             if not rc.status_code == 200:
                 raise Exception(r.status_code)
@@ -83,7 +116,10 @@ def github2csv(issues_csv_file, comments_csv_file, github_user, github_password,
 
     r = requests.get(issues_url, auth=AUTH)
     issues_csvout = csv.writer(open(issues_csv_file, 'wb'))
-    issues_csvout.writerow(('Project Name', 'Project Id', 'Id', 'State', 'Summary', 'Description', 'Created', 'Updated', 'Author', 'Assignee', 'Labels'))
+    issues_csvout.writerow(
+        ('Project Name', 'Project Id', 'Id', 'State', 'Summary', 'Description',
+         'Created', 'Updated', 'Resolved', 'Author', 'Assignee', 'Labels',
+         'Type', 'Milestone'))
     comments_csvout = csv.writer(open(comments_csv_file, 'wb'))
     write_issues(r, issues_csvout, comments_csvout, github_repo, AUTH)
 
