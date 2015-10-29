@@ -57,7 +57,7 @@ def write_issues(r, issues_csvout, comments_csvout, repo, auth):
         labels = []
         labels_lowercase = []
         for label in issue['labels']:
-            label_name = label.get(u'name')
+            label_name = label.get('name')
             if not label_name:
                 continue
             labels.append(label_name)
@@ -68,7 +68,7 @@ def write_issues(r, issues_csvout, comments_csvout, repo, auth):
 
         assignee = issue['assignee']
         if assignee:
-            assignee = assignee.get(u'login')
+            assignee = assignee.get('login')
         else:
             assignee = ""
 
@@ -76,7 +76,9 @@ def write_issues(r, issues_csvout, comments_csvout, repo, auth):
         updated = issue.get('updated_at', '')
         resolved = issue.get('closed_at', '')
 
-        author = get_last_part_of_url(issue['user'].get(u'url'))
+        author = issue['user'].get('login')
+        if not author:
+            author = get_last_part_of_url(issue['user'].get('url'))
 
         project = get_last_part_of_url(repo)
 
@@ -98,7 +100,7 @@ def write_issues(r, issues_csvout, comments_csvout, repo, auth):
             issue_type = 'Bug'
 
         issue_row = [project, project, issue['number'], state, issue['title'],
-                     issue['body'], created, updated, resolved, author,
+                     issue['body'], created, updated, resolved, author or 'guest',
                      assignee, csvClient.VALUE_DELIMITER.join(labels),
                      issue_type, milestone]
         issues_csvout.writerow([utf8encode(e) for e in issue_row])
@@ -108,8 +110,10 @@ def write_issues(r, issues_csvout, comments_csvout, repo, auth):
             if not rc.status_code == 200:
                 raise Exception(r.status_code)
             for comment in rc.json():
-                author = get_last_part_of_url(issue['user'].get(u'url'))
-                comment_row = [project, issue['number'], author,
+                author = comment['user'].get('login')
+                if not author:
+                    author = get_last_part_of_url(comment['user'].get(u'url'))
+                comment_row = [project, issue['number'], author or 'guest',
                                comment['created_at'], comment['body']]
                 comments_csvout.writerow([utf8encode(e) for e in comment_row])
 
