@@ -139,7 +139,9 @@ class CsvYouTrackImporter(YouTrackImporter):
 
     def _import_attachments(self, issue_id, issue_attachments):
         for attach in issue_attachments:
-            author = self._to_yt_user(attach[0]).login
+            yt_user = self._to_yt_user(attach[0])
+            self._import_user(yt_user)
+            author = yt_user.login
             created = self._import_config._to_unix_date(attach[1])
             name = os.path.basename(attach[2])
             content = open(attach[2], 'r')
