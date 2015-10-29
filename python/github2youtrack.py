@@ -6,6 +6,7 @@ import requests
 import csv
 import csvClient
 import csv2youtrack
+from youtrack.importHelper import utf8encode
 
 csvClient.FIELD_NAMES = {
     "Project Name" : "project_name",
@@ -96,10 +97,11 @@ def write_issues(r, issues_csvout, comments_csvout, repo, auth):
         if 'bug' in labels_lowercase:
             issue_type = 'Bug'
 
-        issues_csvout.writerow(
-            [project, project, issue['number'], state, issue['title'].encode('utf-8'), issue['body'].encode('utf-8'),
-             created, updated, resolved, author, assignee, csvClient.VALUE_DELIMITER.join([str(l) for l in labels]),
-             issue_type, milestone.encode('utf-8')])
+        issue_row = [project, project, issue['number'], state, issue['title'],
+                     issue['body'], created, updated, resolved, author,
+                     assignee, csvClient.VALUE_DELIMITER.join(labels),
+                     issue_type, milestone]
+        issues_csvout.writerow([utf8encode(e) for e in issue_row])
         
         if int(issue.get('comments', 0)) > 0 and 'comments_url' in issue:
             rc = requests.get(issue['comments_url'], auth=auth)
@@ -107,7 +109,9 @@ def write_issues(r, issues_csvout, comments_csvout, repo, auth):
                 raise Exception(r.status_code)
             for comment in rc.json():
                 author = get_last_part_of_url(issue['user'].get(u'url'))
-                comments_csvout.writerow([project, issue['number'], author, comment['created_at'], comment['body'].encode('utf-8')])
+                comment_row = [project, issue['number'], author,
+                               comment['created_at'], comment['body']]
+                comments_csvout.writerow([utf8encode(e) for e in comment_row])
 
 
 def github2csv(issues_csv_file, comments_csv_file, github_user, github_password, github_repo):
