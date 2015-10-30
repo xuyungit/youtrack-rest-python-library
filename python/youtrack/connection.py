@@ -168,7 +168,7 @@ class Connection(object):
                 contentLength = int(content.headers.dict['content-length'])
             print 'Importing attachment for issue ', issueId
             try:
-                print 'Name: ', a.name
+                print 'Name: ', utf8encode(a.name)
             except Exception, e:
                 print e
             try:
