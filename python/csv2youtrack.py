@@ -144,7 +144,7 @@ class CsvYouTrackImporter(YouTrackImporter):
             author = yt_user.login
             created = self._import_config._to_unix_date(attach[1])
             name = os.path.basename(attach[2])
-            content = open(attach[2], 'r')
+            content = open(attach[2], 'rb')
             #group = attach[3]
             self._target.importAttachment(issue_id, name, content, author, None, None, created, '')
 

@@ -218,8 +218,8 @@ class Connection(object):
             content.contentType = contentType
         if contentLength is not None:
             content.contentLength = contentLength
-        else:
-            tmp = tempfile.NamedTemporaryFile()
+        elif not isinstance(content, file):
+            tmp = tempfile.NamedTemporaryFile(mode='w+b')
             tmp.write(content.read())
             tmp.flush()
             tmp.seek(0)
