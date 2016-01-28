@@ -191,7 +191,7 @@ class MantisClient(object):
     def get_issue_links(self, after, max):
         cursor = self.sql_cnx.cursor()
         result = []
-        cursor.execute("SELECT * FROM mantis_bug_relationship_table LIMIT %d OFFSET %d" % (after, max))
+        cursor.execute("SELECT * FROM mantis_bug_relationship_table LIMIT %d OFFSET %d" % (max, after))
         for row in cursor:
             source_bug_id = row["source_bug_id"]
             target_bug_id = row["destination_bug_id"]
