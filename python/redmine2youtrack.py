@@ -205,7 +205,7 @@ class RedmineImporter(object):
                 user.login = redmine_user.login
             except AttributeError:
                 pass
-            if not hasattr(user, login) or not user.login:
+            if not hasattr(user, 'login') or not user.login:
                 if hasattr(user, 'email'):
                     user.login = user.email
                 else:
