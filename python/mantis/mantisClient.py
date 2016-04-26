@@ -18,7 +18,7 @@ class MantisClient(object):
         request = "SELECT %s, %s FROM mantis_project_table" % (id_row, name_row,)
         cursor.execute(request)
         for row in cursor:
-            if row[name_row].encode('utf8') == project_name:
+            if row[name_row].encode('utf8').strip() == project_name:
                 return row[id_row]
 
     def _to_user(self, row):
