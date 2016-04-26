@@ -55,7 +55,9 @@ class RedmineClient(object):
             self._password = password
             RedmineResource.user = login
             RedmineResource.password = password
-        Membership.prefix_source += '/projects/$project_id'
+        if not Membership.prefix_source.endswith('/'):
+            Membership.prefix_source += '/'
+        Membership.prefix_source += 'projects/$project_id'
 
     @property
     def headers(self):
