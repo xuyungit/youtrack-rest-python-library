@@ -179,7 +179,7 @@ class Connection(object):
                 contentLength=contentLength,
                 contentType=content.info().type,
                 created=a.created if hasattr(a, 'created') else None,
-                group=a.group if hasattr(a, 'group') else '')
+                group=utf8encode(a.group) if hasattr(a, 'group') else '')
         except urllib2.HTTPError, e:
             print "Can't create attachment"
             try:
