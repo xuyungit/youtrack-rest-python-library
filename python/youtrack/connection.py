@@ -25,13 +25,18 @@ def utf8encode(source):
 def relogin_on_401(f):
     @functools.wraps(f)
     def wrapped(self, *args, **kwargs):
-        try:
-            return f(self, *args, **kwargs)
-        except youtrack.YouTrackException, e:
-            if e.response.status not in (401, 403, 500):
-                raise e
-            self._login(*self._credentials)
-            return f(self, *args, **kwargs)
+        attempts = 10
+        while attempts:
+            try:
+                return f(self, *args, **kwargs)
+            except youtrack.YouTrackException, e:
+                if e.response.status not in (401, 403, 500, 504):
+                    raise e
+                if e.response.status == 504:
+                    time.sleep(30)
+                else:
+                    self._login(*self._credentials)
+                attempts -= 1
     return wrapped
 
 
@@ -350,7 +355,7 @@ class Connection(object):
         bad_fields = ['id', 'projectShortName', 'votes', 'commentsCount',
                       'historyUpdated', 'updatedByFullName', 'updaterFullName',
                       'reporterFullName', 'links', 'attachments', 'jiraId',
-                      'entityId', 'tags']
+                      'entityId', 'tags', 'sprint']
 
         tt_settings = self.getProjectTimeTrackingSettings(projectId)
         if tt_settings and tt_settings.Enabled and tt_settings.TimeSpentField:
