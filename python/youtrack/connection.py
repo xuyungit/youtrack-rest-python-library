@@ -37,6 +37,7 @@ def relogin_on_401(f):
                 else:
                     self._login(*self._credentials)
                 attempts -= 1
+        return f(self, *args, **kwargs)
     return wrapped
 
 
