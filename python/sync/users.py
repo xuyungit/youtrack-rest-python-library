@@ -52,8 +52,8 @@ class UserImporter(object):
                     self.createGroup(group)
                 except Exception, ex:
                     print utf8encode(repr(ex))
-            self.target.setUserGroup(yt_user.login, group.name)
             print "Set " + utf8encode(yt_user.login) + " to " + utf8encode(group.name)
+            self.target.setUserGroup(yt_user.login, group.name)
 
     def _import_user_batch_recursively(self, users):
         if not len(users): return 0
