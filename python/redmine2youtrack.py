@@ -12,6 +12,7 @@ import youtrack
 import youtrack.connection
 from youtrack.importHelper import create_bundle_safe
 from datetime import datetime
+from dateutil import parser
 
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
@@ -90,8 +91,7 @@ def to_unixtime(time_string):
                 tz_diff = int(tzm[2]) * 60 + int(tzm[3])
                 if tzm[1] == '-':
                     tz_diff = -tz_diff
-        dt = datetime.strptime(
-            time_string.replace('T', ' '), '%Y-%m-%d %H:%M:%S')
+        dt = parser.parse(time_string)
     return (calendar.timegm(dt.timetuple()) + tz_diff) * 1000
 
 
