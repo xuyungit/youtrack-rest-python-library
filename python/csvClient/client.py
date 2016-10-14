@@ -1,18 +1,33 @@
+import sys
 import csv
 import csvClient
 
-class Client(object) :
+maxInt = sys.maxsize
+while True:
+    # decrease the maxInt value by factor 10
+    # as long as the OverflowError occurs.
+    try:
+        csv.field_size_limit(maxInt)
+        break
+    except OverflowError:
+        maxInt = int(maxInt/10)
 
-    def __init__(self, file_path) :
+
+class Client(object):
+    def __init__(self, file_path):
         self._file_path = file_path
         self._header = self._read_header()
+        self._issues_reader = None
 
     def _read_header(self):
         header = self._get_reader().next()
-        return [field_name for field_name in [h.strip() for h in header] if len(field_name)]
+        return [field_name
+                for field_name in [h.strip() for h in header]
+                if len(field_name)]
 
     def _get_reader(self):
-        return csv.reader(open(self._file_path, "r"), delimiter=csvClient.CSV_DELIMITER)
+        return csv.reader(open(self._file_path, "r"),
+                          delimiter=csvClient.CSV_DELIMITER)
 
     def get_rows(self):
         reader = self._get_reader()
@@ -36,13 +51,9 @@ class Client(object) :
                         issue["comments"].append(value)
             yield issue
 
-    def get_header(self) :
+    def get_header(self):
         return self._header
 
     def reset(self):
         self._issues_reader = self._get_reader()
         self._read_header()
-
-
-
-        
