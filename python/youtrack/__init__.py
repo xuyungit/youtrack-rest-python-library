@@ -177,6 +177,8 @@ class Issue(YouTrackObject):
         return getattr(self, 'Assignee', None) is not None
 
     def getAssignee(self):
+        if isinstance(self.Assignee, (list, tuple)):
+            return [self.youtrack.getUser(u) for u in self.Assignee]
         return self.youtrack.getUser(self.Assignee)
 
     def getUpdater(self):

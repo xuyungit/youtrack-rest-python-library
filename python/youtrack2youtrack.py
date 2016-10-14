@@ -363,7 +363,11 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                     print "Collect users for issue [%s]" % issue.id
 
                     users.add(issue.getReporter())
-                    if issue.hasAssignee(): users.add(issue.getAssignee())
+                    if issue.hasAssignee():
+                        if isinstance(issue.Assignee, (list, tuple)):
+                            users.update(issue.getAssignee())
+                        else:
+                            users.add(issue.getAssignee())
                     #TODO: http://youtrack.jetbrains.net/issue/JT-6100
                     users.add(issue.getUpdater())
                     if issue.hasVoters(): users.update(issue.getVoters())
