@@ -13,6 +13,7 @@ import json
 import urllib2_file
 import tempfile
 import functools
+import re
 
 def urlquote(s):
     return urllib.quote(utf8encode(s), safe="")
@@ -80,6 +81,13 @@ class Connection(object):
 
         response, content = self.http.request((self.baseUrl + url).encode('utf-8'), method, headers=headers, body=body)
         content = content.translate(None, '\0')
+        _illegal_unichrs = [(0x00, 0x08), (0x0B, 0x0C), (0x0E, 0x1F),
+                            (0x7F, 0x84), (0x86, 0x9F), (0xFDD0, 0xFDDF),
+                            (0xFFFE, 0xFFFF)]
+        _illegal_ranges = ["%s-%s" % (unichr(low), unichr(high))
+                           for (low, high) in _illegal_unichrs]
+        _illegal_xml_chars_re = re.compile(u'[%s]' % u''.join(_illegal_ranges))
+        content = re.sub(_illegal_xml_chars_re, '', content.decode('utf-8')).encode('utf-8')
         if response.status != 200 and response.status != 201 and (ignoreStatus != response.status):
             raise youtrack.YouTrackException(url, response, content)
 
@@ -937,7 +945,7 @@ class Connection(object):
     def getGlobalTimeTrackingSettings(self):
         try:
             cont = self._get('/admin/timetracking')
-            return youtrack.GlobalTimeTrackingSettings(cont, xml)
+            return youtrack.GlobalTimeTrackingSettings(cont, self)
         except youtrack.YouTrackException, e:
             if e.response.status != 404:
                 raise e
