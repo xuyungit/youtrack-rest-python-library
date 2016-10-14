@@ -5,6 +5,7 @@ import re
 import calendar
 import time
 import datetime
+import requests
 import sys
 import csvClient
 from csvClient.client import Client
@@ -106,9 +107,16 @@ class CsvYouTrackImporter(YouTrackImporter):
 
     def _to_yt_user(self, value):
         yt_user = User()
-        yt_user.login = value.replace(' ', '_')
-        yt_user.fullName = value
-        yt_user.email = value
+        user = value.split(';')
+        yt_user.login = user[0].replace(' ', '_')
+        try:
+            yt_user.fullName = user[1] or yt_user.login
+        except IndexError:
+            yt_user.fullName = yt_user.login
+        try:
+            yt_user.email = user[2] or yt_user.login + '@fake.com'
+        except IndexError:
+            yt_user.email = yt_user.login + '@fake.com'
         return yt_user
 
     def _get_issue_id(self, issue):
@@ -143,10 +151,30 @@ class CsvYouTrackImporter(YouTrackImporter):
             self._import_user(yt_user)
             author = yt_user.login
             created = self._import_config._to_unix_date(attach[1])
-            name = os.path.basename(attach[2])
-            content = open(attach[2], 'rb')
+            src = attach[2].strip()
+            if re.match(r'^https?://', src):
+                name = attach[3]
+                try:
+                    r = requests.get(src, stream=True)
+                except requests.exceptions.ConnectionError, e:
+                    print 'Cannot import attachment for issue %s: %s' % (issue_id, e.message)
+                    continue
+                if r.status_code != 200:
+                    print 'Cannot import attachment for issue %s: HTTP_%d, %s ' % (issue_id, r.status_code, r.request.url)
+                    continue
+                r.raw.decode_content = True
+                content = r.raw
+            else:
+                content = open(src, 'rb')
+                try:
+                    name = attach[3]
+                except IndexError:
+                    name = os.path.basename(src)
             #group = attach[3]
-            self._target.importAttachment(issue_id, name, content, author, None, None, created, '')
+            try:
+                self._target.importAttachment(issue_id, name, content, author, None, None, created, '')
+            except Exception, e:
+                print 'Cannot import attachment (name=%s) for issue %s: %s' % (name, issue_id, e.message)
 
     def _get_custom_field_names(self, project_ids):
         project_name_key = self._import_config.get_key_for_field_name(self._import_config.get_project_name_key())
