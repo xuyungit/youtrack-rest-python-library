@@ -290,6 +290,27 @@ class Connection(object):
                 res.append(link)
         return res
 
+    def getTag(self, tag_name):
+        return youtrack.Tag(
+            self._get("/user/tag/" + urlquote(tag_name)), self)
+
+    def getTags(self):
+        response, content = self._req('GET', '/user/tag')
+        xml = minidom.parseString(content)
+        return [youtrack.Tag(e, self) for e in xml.documentElement.childNodes
+                if e.nodeType == Node.ELEMENT_NODE]
+
+    def createTag(self, name, untagOnResolve=False,
+                  updatableByGroup=None, visibleForGroup=None):
+        url = '/user/tag/%s?untagOnResolve=%s' % \
+              (urlquote(utf8encode(name)), untagOnResolve)
+        if updatableByGroup:
+            url += '&updatableByGroup=' + urlquote(utf8encode(updatableByGroup))
+        if visibleForGroup:
+            url += '&visibleForGroup=' + urlquote(utf8encode(visibleForGroup))
+        return self._put(url)
+
+
     def getUser(self, login):
         """ http://confluence.jetbrains.net/display/YTD2/GET+user
         """

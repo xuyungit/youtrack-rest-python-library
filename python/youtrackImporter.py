@@ -1,10 +1,7 @@
 from youtrack import YouTrackException, Issue
 import youtrack
-from youtrack.connection import Connection
 from youtrack.importHelper import create_custom_field
 import itertools
-
-__author__ = 'user'
 
 NAME = u'name'
 TYPE = u'type'
@@ -12,20 +9,22 @@ POLICY = u'bundle_policy'
 AUTO_ATTACHED = u'auto_attached'
 NUMBER_IN_PROJECT = u'numberInProject'
 
+
 class YouTrackImporter(object):
     def __init__(self, source, target, import_config):
         self._source = source
         self._target = target
         self._import_config = import_config
+        self._known_values = dict()
 
     def do_import(self, projects, new_projects_owner_login=u'root'):
         project_ids = projects.keys()
         self._create_auto_attached_fields()
         self._create_custom_fields(project_ids)
         for project_id, project_name in projects.items():
-            self._create_project(project_id, project_name, new_projects_owner_login)
-            self._attach_fields_to_project(project_id)
-            self._add_value_to_fields_in_project(project_id)
+            #self._create_project(project_id, project_name, new_projects_owner_login)
+            #self._attach_fields_to_project(project_id)
+            #self._add_value_to_fields_in_project(project_id)
             self._import_issues(project_id)
         self._import_tags(project_ids)
         self._import_issue_links(project_ids)
@@ -67,7 +66,7 @@ class YouTrackImporter(object):
                     print(u'Field [%s] is already attached' % field_name)
 
     def _import_issues(self, project_id):
-        limit = 100
+        limit = 10
         all_issues = self._get_issues(project_id)
         while True:
             issues = list(itertools.islice(all_issues, None, limit))
@@ -91,7 +90,7 @@ class YouTrackImporter(object):
                 if not len(l):
                     break
                 issue_tags = zip(*l)[1]
-                existing_tags |= set([item for tags in issue_tags for item in tags])
+                existing_tags |= set([item.strip() for tags in issue_tags for item in tags])
         self._do_import_tags(project_ids, existing_tags)
 
     def _is_prefix_of_any_other_tag(self, tag, other_tags):
@@ -99,7 +98,6 @@ class YouTrackImporter(object):
             if t.startswith(tag) and (t != tag):
                 return True
         return False
-
 
     def _do_import_tags(self, project_ids, collected_tags):
         tags_to_import_now = set([])
@@ -114,6 +112,13 @@ class YouTrackImporter(object):
                 yt_issue_id = u'%s-%s' % (project_id, issue_id)
                 for tag in tags:
                     if tag in tags_to_import_now:
+                        try:
+                            self._target.getTag(tag)
+                        except YouTrackException:
+                            self._target.createTag(tag,
+                                                   False,
+                                                   'go-lang-idea-plugin Developers',
+                                                   'go-lang-idea-plugin Developers')
                         try:
                             self._target.executeCommand(yt_issue_id, u'tag ' + tag)
                         except YouTrackException:
@@ -204,6 +209,11 @@ class YouTrackImporter(object):
             value = value.login
         if field_name in youtrack.EXISTING_FIELDS:
             return
+        k = project_id + field_name + value
+        if k not in self._known_values:
+            self._known_values[k] = 1
+        else:
+            return
         custom_field = self._target.getProjectCustomField(project_id, field_name)
         if hasattr(custom_field, u'bundle'):
             bundle = self._target.getBundle(field_type, custom_field.bundle)
@@ -270,7 +280,9 @@ class YouTrackImporter(object):
 
     def _get_issue_tags(self, project_id):
         key = self._import_config.get_key_for_field_name(u'Tags')
-        return ((self._get_issue_id(issue), issue[key]) for issue in self._get_issues(project_id) if (key in issue ) and len(issue[key]))
+        return ((self._get_issue_id(issue), issue[key].split('|'))
+                for issue in self._get_issues(project_id)
+                if (key in issue) and len(issue[key]))
 
     def _get_issue_links(self, project_id, after, limit):
         return []

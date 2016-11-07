@@ -7,16 +7,15 @@ import time
 import datetime
 import requests
 import sys
+import csv
 import csvClient
 from csvClient.client import Client
 import csvClient.youtrackMapping
-import youtrack
 from youtrackImporter import *
 
 csvClient.FIELD_TYPES.update(youtrack.EXISTING_FIELD_TYPES)
-from youtrack import YouTrackException, Issue, User, Comment
+from youtrack import User, Comment
 from youtrack.connection import Connection
-from youtrack.importHelper import create_custom_field
 
 
 def main():
@@ -70,11 +69,17 @@ class CsvYouTrackImporter(YouTrackImporter):
                 if issue_id not in self._attachments:
                     self._attachments[issue_id] = []
                 self._attachments[issue_id].append(a[2:])
+        self._notifications_data = dict()
+        self._notifications_csv = csv.writer(open('github_import_notifications_data.csv', 'wb'))
 
     def import_csv(self, new_projects_owner_login=u'root'):
         projects = self._get_projects()
         self._source.reset()
         self.do_import(projects, new_projects_owner_login)
+        self._notifications_csv.writerow(['Email', 'GitHub URL', 'IssueId', 'Summary'])
+        for email, issues in self._notifications_data.items():
+            for github_url, yt_issue_arr in sorted(issues.items()):
+                self._notifications_csv.writerow([email, github_url, yt_issue_arr[0], yt_issue_arr[1]])
 
     def _to_yt_comment(self, comment):
         if isinstance(comment, str) or isinstance(comment, unicode):
@@ -85,11 +90,18 @@ class CsvYouTrackImporter(YouTrackImporter):
             return result
         if isinstance(comment, list):
             yt_user = self._to_yt_user(comment[0])
-            self._import_user(yt_user)
             result = Comment()
-            result.author = yt_user.login
             result.created = self._import_config._to_unix_date(comment[1])
             result.text = comment[2]
+            if yt_user.email.endswith('fake.com'):
+                result.author = u'guest'
+                result.text = \
+                    "''Originally [%s posted] on GitHub by user @%s''\n\n%s"\
+                    % (comment[3], yt_user.login, result.text)
+            else:
+                self._import_user(yt_user)
+                result.author = yt_user.login
+                result.author_email = yt_user.email
             return result
 
     def get_field_value(self, field_name, field_type, value):
@@ -106,18 +118,56 @@ class CsvYouTrackImporter(YouTrackImporter):
         return super(CsvYouTrackImporter, self).get_field_value(field_name, field_type, value)
 
     def _to_yt_user(self, value):
+        users_mapping = dict(
+            m0sth9=['m0sth8', 'm0sth8', 'm0sth8@gmail.com'],
+            horkhe=['Maxim.Vladimirsky', 'Maxim Vladimirsky', 'horkhe@gmail.com'],
+            deadok22=['Sergey.Savenko', 'Sergey Savenko', 'Sergey.Savenko@jetbrains.com'],
+            dlsniper=['Florin.Patan', 'Florin Patan', 'florinpatan@gmail.com'],
+            grenki=['Sergey.Ibragimov', 'Sergey Ibragimov', 'Sergey.Ibragimov@jetbrains.com'])
+
         yt_user = User()
         user = value.split(';')
         yt_user.login = user[0].replace(' ', '_')
+        if yt_user.login in users_mapping:
+            user = users_mapping[yt_user.login]
+            yt_user.login = user[0]
         try:
             yt_user.fullName = user[1] or yt_user.login
         except IndexError:
             yt_user.fullName = yt_user.login
         try:
-            yt_user.email = user[2] or yt_user.login + '@fake.com'
+            yt_user.email = user[2].strip() or yt_user.login + '@fake.com'
         except IndexError:
             yt_user.email = yt_user.login + '@fake.com'
         return yt_user
+
+    def _save_notification_data(self, email, github_url, yt_issue_id, yt_issue_summary):
+        if email not in self._notifications_data:
+            self._notifications_data[email] = dict()
+        data = self._notifications_data[email]
+        if github_url not in data:
+            data[github_url] = [yt_issue_id, yt_issue_summary]
+
+    def _to_yt_issue(self, issue, project_id):
+        yt_issue_id = self._get_yt_issue_id(issue)
+        author = self._to_yt_user(issue['Author'])
+        desc = issue.get('Description', '')
+        if author.email.endswith('fake.com'):
+            issue['Author'] = u'guest'
+            issue['Description'] = \
+                "''Originally [%s posted] on GitHub by user @%s''" % (issue['IssueURL'], author.login)
+        else:
+            self._save_notification_data(author.email, issue['IssueURL'], yt_issue_id, issue['Summary'])
+            issue['Description'] = \
+                "''Originally [%s posted] on GitHub by user @@%s''" % (issue['IssueURL'], author.login)
+        if desc:
+            issue['Description'] += '\n\n' + desc
+        result = super(CsvYouTrackImporter, self)._to_yt_issue(issue, project_id)
+        for c in result.comments:
+            if c.author == u'guest':
+                continue
+            self._save_notification_data(c.author_email, issue['IssueURL'], yt_issue_id, issue['Summary'])
+        return result
 
     def _get_issue_id(self, issue):
         number_regex = re.compile("\d+")
@@ -148,11 +198,16 @@ class CsvYouTrackImporter(YouTrackImporter):
     def _import_attachments(self, issue_id, issue_attachments):
         for attach in issue_attachments:
             yt_user = self._to_yt_user(attach[0])
-            self._import_user(yt_user)
+            if yt_user.email.endswith('fake.com'):
+                yt_user = self._to_yt_user(u'guest')
+            else:
+                self._import_user(yt_user)
             author = yt_user.login
             created = self._import_config._to_unix_date(attach[1])
             src = attach[2].strip()
             if re.match(r'^https?://', src):
+                if src.startswith('http://ipfs.pics/ipfs/') or src.startswith('https://ipfs.pics/ipfs/'):
+                    continue
                 name = attach[3]
                 try:
                     r = requests.get(src, stream=True)

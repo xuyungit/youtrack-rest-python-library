@@ -298,6 +298,12 @@ class Link(YouTrackObject):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+
+class Tag(YouTrackObject):
+    def __init__(self, xml=None, youtrack=None):
+        YouTrackObject.__init__(self, xml, youtrack)
+
+
 class Attachment(YouTrackObject):
     def __init__(self, xml=None, youtrack=None):
         YouTrackObject.__init__(self, xml, youtrack)

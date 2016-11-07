@@ -20,7 +20,7 @@ csvClient.FIELD_NAMES = {
     "Resolved": "resolved",
     "Assignee": "Assignee",
     "Description": "description",
-    "Labels": "Labels",
+    "Labels": "Tags",
     "Author": "reporterName",
     "Milestone": "Fix versions"
 }
@@ -28,7 +28,7 @@ csvClient.FIELD_NAMES = {
 csvClient.FIELD_TYPES = {
     "State": "state[1]",
     "Assignee": "user[1]",
-    "Labels": "enum[*]",
+    # "Labels": "enum[*]",
     "Fix versions": "version[*]",
     "Type": "enum[1]"
 }
@@ -44,10 +44,10 @@ AUTH = None
 def main():
     global AUTH
 
-    (github_user, github_password, github_repo,
+    (github_user, github_password_or_token, github_repo,
      youtrack_url, youtrack_login, youtrack_password) = sys.argv[1:8]
 
-    AUTH = (github_user, github_password)
+    AUTH = (github_user, github_password_or_token)
 
     if github_repo.find('/') > -1:
         github_repo_owner, github_repo = github_repo.split('/')
@@ -58,12 +58,12 @@ def main():
     comments_csv_file = CSV_FILE.format(repo=github_repo, data='comments')
     attachments_csv_file = CSV_FILE.format(repo=github_repo, data='attachments')
 
-    github2csv(
-        issues_csv_file,
-        comments_csv_file,
-        attachments_csv_file,
-        github_repo,
-        github_repo_owner)
+    #github2csv(
+    #    issues_csv_file,
+    #    comments_csv_file,
+    #    attachments_csv_file,
+    #    github_repo,
+    #    github_repo_owner)
     csv2youtrack.csv2youtrack(
         issues_csv_file,
         youtrack_url,
@@ -119,15 +119,19 @@ def process_attachments(content):
 
 
 def convert_code_blocks(content):
-    # Convert only one-line code blocks
-    # because multi-line blocks are supported by YouTrack
-    return re.sub(r'```(.+?)```', r'{code}\1{code}', content)
+    r1 = re.compile(r'```(javascript|java|cpp|c\+\+)(.*?)```',
+                    re.IGNORECASE|re.DOTALL)
+    r2 = re.compile(r'```\s*(?:go)?(.*?)```',
+                    re.IGNORECASE|re.DOTALL)
+    content = re.sub(r1, '{code lang=\\1}\\2{code}', content)
+    content = re.sub(r2, '{code}\\1{code}', content)
+    return content
 
 
 # Based on https://gist.github.com/unbracketed/3380407
 def write_issues(r, issues_csv, comments_csv, attachments_csv, repo):
     for issue in r.json():
-        labels = []
+        labels = ['GitHub']
         labels_lowercase = []
         for label in issue['labels']:
             label_name = label.get('name')
@@ -142,11 +146,16 @@ def write_issues(r, issues_csv, comments_csv, attachments_csv, repo):
         else:
             assignee = ""
 
+        if issue['number'] < 1094 and \
+           assignee.split(';')[0].lower() not in \
+                ('zolotov', 'ignatov', 'dlsniper'):
+            continue
+
         created = issue['created_at']
         updated = issue.get('updated_at', '')
         resolved = issue.get('closed_at', '')
 
-        project = get_last_part_of_url(repo).replace('-', '_')
+        project = 'GO' #get_last_part_of_url(repo).replace('-', '_')
         author = get_user_info(issue['user'])
 
         milestone = issue.get('milestone')
@@ -157,10 +166,12 @@ def write_issues(r, issues_csv, comments_csv, attachments_csv, repo):
 
         state = issue['state'].lower()
         if state == 'closed':
-            if 'wontfix' in labels_lowercase or 'invalid' in labels_lowercase:
-                state = "Won't fix"
-            else:
-                state = "Fixed"
+            state = "Fixed"
+            for l in ("won't fix", "wontfix", "invalid"):
+                if l in labels_lowercase:
+                    state = "Won't fix"
+                    break
+
         if state == 'open' and 'in progress' in labels_lowercase:
             state == 'In Progress'
 
@@ -177,24 +188,26 @@ def write_issues(r, issues_csv, comments_csv, attachments_csv, repo):
 
         # Convert markdown code blocks
         issue_desc = convert_code_blocks(issue_desc)
-        # Add link to original GitHub issue
-        issue_desc = '[%s GitHub Issue]\n\n' % issue['html_url'] + issue_desc
 
-        issue_row = [project, project, issue['number'], state, issue['title'],
+        # Add link to original GitHub issue
+        #issue_desc += '\n\n[%s GitHub Issue]' % issue['html_url']
+
+        issue_row = ['Go Plugin for IntelliJ', project, issue['number'], state, issue['title'],
                      issue_desc, created, updated, resolved, author, assignee,
                      csvClient.VALUE_DELIMITER.join(labels), issue_type,
-                     milestone]
+                     milestone, issue['html_url']]
         issues_csv.writerow([utf8encode(e) for e in issue_row])
         
         if int(issue.get('comments', 0)) > 0 and 'comments_url' in issue:
             rc = req_get(issue['comments_url'])
             for comment in rc.json():
                 comment_text, image_links = process_attachments(comment['body'])
+                comment_author = get_user_info(comment['user'])
                 # Convert markdown code blocks
                 comment_text = convert_code_blocks(comment_text)
-                comment_author = get_user_info(comment['user'])
                 comment_row = [project, issue['number'], comment_author,
-                               comment['created_at'], comment_text]
+                               comment['created_at'], comment_text,
+                               comment['html_url']]
                 comments_csv.writerow([utf8encode(e) for e in comment_row])
                 for name, href in image_links:
                     attach_row = [project, issue['number'], comment_author,
@@ -205,7 +218,6 @@ def write_issues(r, issues_csv, comments_csv, attachments_csv, repo):
 
 def github2csv(issues_csv_file, comments_csv_file, attachments_csv_file,
                github_repo, github_repo_owner):
-    #return None
     issues_url = 'https://api.github.com/repos/%s/%s/issues?state=all' % \
                  (github_repo_owner, github_repo)
 
@@ -215,7 +227,7 @@ def github2csv(issues_csv_file, comments_csv_file, attachments_csv_file,
     issues_csv.writerow(
         ('Project Name', 'Project Id', 'Id', 'State', 'Summary', 'Description',
          'Created', 'Updated', 'Resolved', 'Author', 'Assignee', 'Labels',
-         'Type', 'Milestone'))
+         'Type', 'Milestone', 'IssueURL'))
     comments_csv = csv.writer(open(comments_csv_file, 'wb'))
     attachments_csv = csv.writer(open(attachments_csv_file, 'wb'))
     write_issues(r, issues_csv, comments_csv, attachments_csv, github_repo)
@@ -227,6 +239,7 @@ def github2csv(issues_csv_file, comments_csv_file, attachments_csv_file,
                 [link.split(';') for link in
                     r.headers['link'].split(',')]])
         while 'last' in pages and 'next' in pages:
+            print 'Getting issues from url: ', pages['next']
             r = req_get(pages['next'])
             write_issues(
                 r, issues_csv, comments_csv, attachments_csv, github_repo)
