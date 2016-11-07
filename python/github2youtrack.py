@@ -58,12 +58,12 @@ def main():
     comments_csv_file = CSV_FILE.format(repo=github_repo, data='comments')
     attachments_csv_file = CSV_FILE.format(repo=github_repo, data='attachments')
 
-    #github2csv(
-    #    issues_csv_file,
-    #    comments_csv_file,
-    #    attachments_csv_file,
-    #    github_repo,
-    #    github_repo_owner)
+    github2csv(
+        issues_csv_file,
+        comments_csv_file,
+        attachments_csv_file,
+        github_repo,
+        github_repo_owner)
     csv2youtrack.csv2youtrack(
         issues_csv_file,
         youtrack_url,
