@@ -105,11 +105,24 @@ class CsvYouTrackImporter(YouTrackImporter):
         return super(CsvYouTrackImporter, self).get_field_value(field_name, field_type, value)
 
     def _to_yt_user(self, value):
+        users_mapping = dict()
+
         yt_user = User()
-        yt_user.login = value.replace(' ', '_')
-        yt_user.fullName = value
-        yt_user.email = value
+        user = value.split(';')
+        yt_user.login = user[0].replace(' ', '_')
+        if yt_user.login in users_mapping:
+            user = users_mapping[yt_user.login]
+            yt_user.login = user[0]
+        try:
+            yt_user.fullName = user[1] or yt_user.login
+        except IndexError:
+            yt_user.fullName = yt_user.login
+        try:
+            yt_user.email = user[2].strip() or yt_user.login + '@fake.com'
+        except IndexError:
+            yt_user.email = yt_user.login + '@fake.com'
         return yt_user
+
 
     def _get_issue_id(self, issue):
         number_regex = re.compile("\d+")
