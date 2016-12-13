@@ -81,6 +81,7 @@ class Connection(object):
 
         response, content = self.http.request((self.baseUrl + url).encode('utf-8'), method, headers=headers, body=body)
         content = content.translate(None, '\0')
+        content = re.sub('system_user[%@][a-zA-Z0-9]+', 'guest', content)
         _illegal_unichrs = [(0x00, 0x08), (0x0B, 0x0C), (0x0E, 0x1F),
                             (0x7F, 0x84), (0x86, 0x9F), (0xFDD0, 0xFDDF),
                             (0xFFFE, 0xFFFF)]
@@ -293,6 +294,8 @@ class Connection(object):
     def getUser(self, login):
         """ http://confluence.jetbrains.net/display/YTD2/GET+user
         """
+        if login.startswith('system_user'):
+            login = 'guest'
         return youtrack.User(self._get("/admin/user/" + urlquote(login.encode('utf8'))), self)
 
     def createUser(self, user):
