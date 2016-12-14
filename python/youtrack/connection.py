@@ -977,8 +977,12 @@ class Connection(object):
         else:
             xml = '<settings>'
         if estimateField is not None and estimateField != '':
+            if isinstance(estimateField, unicode):
+                estimateField = estimateField.encode('utf-8')
             xml += '<estimation name="%s"/>' % estimateField
         if timeSpentField is not None and timeSpentField != '':
+            if isinstance(timeSpentField, unicode):
+                timeSpentField = timeSpentField.encode('utf-8')
             xml += '<spentTime name="%s"/>' % timeSpentField
         xml += '</settings>'
         return self._reqXml(
