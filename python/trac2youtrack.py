@@ -5,6 +5,7 @@ import urllib
 from youtrack.connection import Connection
 from tracLib.client import Client
 import youtrack
+import re
 import sys
 import tracLib
 import tracLib.defaultTrac
@@ -121,7 +122,7 @@ def to_youtrack_subsystem(trac_component, yt_bundle):
     return yt_subsystem
 
 
-def to_youtrack_issue(trac_issue, check_box_fields):
+def to_youtrack_issue(project_ID, trac_issue, check_box_fields):
     issue = youtrack.Issue()
 
     issue.numberInProject = str(trac_issue.id)
@@ -158,7 +159,7 @@ def to_youtrack_issue(trac_issue, check_box_fields):
                 issue[cf] = value
     issue.comments = []
     for comment in trac_issue.comments:
-        issue.comments.append(to_youtrack_comment(comment))
+        issue.comments.append(to_youtrack_comment(project_ID, comment))
     return issue
 
 
@@ -181,7 +182,7 @@ def to_youtrack_version(trac_version, yt_bundle):
     version.releaseDate = trac_version.time
     return version
 
-def to_youtrack_comment(trac_comment):
+def to_youtrack_comment(project_ID, trac_comment):
     """
     This method converts trac comment to youtrack comment
 
@@ -198,7 +199,10 @@ def to_youtrack_comment(trac_comment):
         comment.author = "guest"
     else:
         comment.author = trac_comment.author
+
+    #translate Trac wiki ticket link format to YouTrack id format
     comment.text = trac_comment.content
+    comment.text = re.sub(r'\#(\d+)', project_ID+'-'+r'\1', comment.text)
     comment.created = str(trac_comment.time)
     return comment
 
@@ -334,10 +338,13 @@ def trac2youtrack(target_url, target_login, target_password, project_ID, project
     trac_resolution_to_yt_state = lambda track_field, yt_bundle : to_youtrack_state(track_field, yt_bundle)
     create_yt_bundle_custom_field(target, project_ID, "Resolution", client.get_issue_resolutions(), trac_resolution_to_yt_state)
 
-    trac_versions = client.get_versions()
     trac_version_to_yt_version = lambda trac_field, yt_bundle : to_youtrack_version(trac_field, yt_bundle)
-    create_yt_bundle_custom_field(target, project_ID, "Version", trac_versions, trac_version_to_yt_version)
-    #create_yt_bundle_custom_field(target, project_ID, "Affected versions", trac_versions, trac_version_to_yt_version)
+
+    trac_versions = client.get_versions()
+    create_yt_bundle_custom_field(target, project_ID, "Affected versions", trac_versions, trac_version_to_yt_version)
+
+    trac_milestones = client.get_milestones()
+    create_yt_bundle_custom_field(target, project_ID, "Fix versions", trac_milestones, trac_version_to_yt_version)
 
     trac_components = client.get_components()
     for cmp in trac_components :
@@ -404,7 +411,7 @@ def trac2youtrack(target_url, target_login, target_password, project_ID, project
                 legal_cc.add(cc)
         issue.cc = legal_cc
 
-        yt_issues.append(to_youtrack_issue(issue, check_box_fields))
+        yt_issues.append(to_youtrack_issue(project_ID, issue, check_box_fields))
         if counter == max:
             counter = 0
             print target.importIssues(project_ID, project_name + ' Assignees', yt_issues)
