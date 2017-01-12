@@ -176,7 +176,7 @@ def to_youtrack_version(trac_version, yt_bundle):
         New version is released and not archived.
     """""
     version = yt_bundle.createElement(trac_version.name)
-    version.isReleased = True
+    version.isReleased = (trac_version.time is not None)
     version.isArchived = False
     version.description = trac_version.description
     version.releaseDate = trac_version.time
