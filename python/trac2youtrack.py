@@ -157,6 +157,12 @@ def to_youtrack_issue(project_ID, trac_issue, check_box_fields):
                     value = cf_values_mapping[value]
             if (value is not None) and (value.strip() != ""):
                 issue[cf] = value
+
+    # handle special case of status:closed / resolution:fixed
+    if (custom_fields["Status"] is not None) and (custom_fields["Status"] == "closed"):
+        if (custom_fields["Resolution"] is not None) and (custom_fields["Resolution"] == "fixed"):
+            issue["State"] = "Verified"
+
     issue.comments = []
     for comment in trac_issue.comments:
         issue.comments.append(to_youtrack_comment(project_ID, comment))
