@@ -200,9 +200,17 @@ def to_youtrack_comment(project_ID, trac_comment):
     else:
         comment.author = trac_comment.author
 
-    #translate Trac wiki ticket link format to YouTrack id format
     comment.text = trac_comment.content
+
+    # translate Trac wiki ticket link format to YouTrack id format
     comment.text = re.sub(r'\#(\d+)', project_ID+'-'+r'\1', comment.text)
+
+    # translate trac preformatted blocks, {{{ and }}}
+    # opening tag done as two lines for python 2.7 that doesn't really support optional capture group
+    comment.text = re.sub(r'{{{\s*#!(\w+)', r'```\1', comment.text)
+    comment.text = re.sub(r'{{{', r'```', comment.text)
+    comment.text = re.sub(r'}}}', r'```', comment.text)
+
     comment.created = str(trac_comment.time)
     return comment
 
