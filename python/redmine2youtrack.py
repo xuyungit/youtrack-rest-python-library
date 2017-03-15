@@ -446,11 +446,11 @@ class RedmineImporter(object):
                 return
             issue[field_name] = []
             for v in value:
-                self._create_field_value(project_id, field_name, field_type, v)
+                v = self._create_field_value(project_id, field_name, field_type, v)
                 issue[field_name].append(
                     self._get_value_presentation(field_type, v))
         else:
-            self._create_field_value(project_id, field_name, field_type, value)
+            value = self._create_field_value(project_id, field_name, field_type, value)
             issue[field_name] = self._get_value_presentation(field_type, value)
 
     def _create_field(self, project_id, field_name, field_type):
@@ -471,15 +471,18 @@ class RedmineImporter(object):
 
     def _create_field_value(self, project_id, field_name, field_type, value):
         if field_type.startswith('user'):
-            value.name = self._create_user(value).login
+            if hasattr(value, 'name'):
+                value.name = self._create_user(value).login
+            else:
+                value = self._create_user(value).login
         if field_name == 'Assignee':
-            return
+            return value
         if field_name in youtrack.EXISTING_FIELDS:
-            return
+            return value
         self._create_field(project_id, field_name, field_type)
         if field_type in ('string', 'date', 'integer', 'float', 'period'):
-            return
-        field  = self._target.getProjectCustomField(project_id, field_name)
+            return value
+        field = self._target.getProjectCustomField(project_id, field_name)
         bundle = self._target.getBundle(field_type, field.bundle)
         try:
             if hasattr(value, 'value'):
@@ -489,6 +492,7 @@ class RedmineImporter(object):
                         field_type.startswith('ownedField')):
                     value = value.name
             self._target.addValueToBundle(bundle, value)
+            return value
         except youtrack.YouTrackException, e:
             if e.response.status != 409 or e.response.reason.lower() != 'conflict':
                 print e
