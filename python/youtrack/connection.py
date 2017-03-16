@@ -416,7 +416,7 @@ class Connection(object):
                             ca = ca.encode('utf-8')
                         if isinstance(val, unicode):
                             val = val.encode('utf-8')
-                        record += ' ' + ca + '=' + quoteattr(val)
+                        record += ' ' + ca + '=' + quoteattr(val, {"\n" : "&#xA;"})
                     record += '/>\n'
 
             record += '  </issue>\n'
