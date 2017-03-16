@@ -492,10 +492,10 @@ class RedmineImporter(object):
                         field_type.startswith('ownedField')):
                     value = value.name
             self._target.addValueToBundle(bundle, value)
-            return value
         except youtrack.YouTrackException, e:
             if e.response.status != 409 or e.response.reason.lower() != 'conflict':
                 print e
+        return value
 
     def _get_value_presentation(self, field_type, value):
         if field_type == 'date':
