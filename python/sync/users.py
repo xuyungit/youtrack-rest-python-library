@@ -9,10 +9,11 @@ def utf8encode(source):
 
 
 class UserImporter(object):
-    def __init__(self, source, target, caching_users=True):
+    def __init__(self, source, target, caching_users=True, import_groups=True):
         self.source = source
         self.target = target
         self.caching_users = caching_users
+        self.import_groups = import_groups
         #self.created_user_logins = set([user.login for user in target.getUsers()]) if caching_users else set([])
         self.created_user_logins = set([])
         self.created_group_names = set([group.name for group in target.getGroups()])
@@ -63,7 +64,8 @@ class UserImporter(object):
             if filtered_user: users_to_import.append(filtered_user)
         self.target.importUsers(users_to_import)
         for yt_user in users_to_import:
-            self._import_groups_of(yt_user)
+            if self.import_groups:
+                self._import_groups_of(yt_user)
             if self.caching_users: self.created_user_logins.add(yt_user.login)
         return len(users_to_import)
 
