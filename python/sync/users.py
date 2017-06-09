@@ -53,6 +53,7 @@ class UserImporter(object):
                     self.createGroup(group)
                 except Exception, ex:
                     print utf8encode(repr(ex))
+                    continue
             print "Set " + utf8encode(yt_user.login) + " to " + utf8encode(group.name)
             self.target.setUserGroup(yt_user.login, group.name)
 
