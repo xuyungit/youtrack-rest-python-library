@@ -12,7 +12,8 @@ class Mapping(object):
         'due_date'        : 'Due Date',
         'estimated_hours' : 'Estimation',
         'category'        : 'Subsystem',
-        'fixed_version'   : 'Fix versions'
+        'fixed_version'   : 'Fix versions',
+        'redmine_id'      : 'Redmine ID'
     }
 
     FIELD_TYPES = {
@@ -23,7 +24,8 @@ class Mapping(object):
         'Due Date'     : 'date',
         'Estimation'   : 'period',
         'Subsystem'    : 'ownedField[1]',
-        'Fix versions' : 'version[*]'
+        'Fix versions' : 'version[*]',
+        'Redmine ID'   : 'integer'
     }
 
     CONVERSION = {

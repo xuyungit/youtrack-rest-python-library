@@ -1,7 +1,7 @@
 import sys
 import os
 from pyactiveresource.activeresource import ActiveResource
-from pyactiveresource.connection import ResourceNotFound, MethodNotAllowed
+from pyactiveresource.connection import ResourceNotFound, MethodNotAllowed, ServerError
 import urlparse
 import pprint
 
@@ -37,9 +37,6 @@ class TimeEntry(RedmineResource): pass
 class Permission(RedmineResource): pass
 
 class CustomField(RedmineResource): pass
-
-
-
 
 class RedmineException(Exception): pass
 
@@ -81,7 +78,6 @@ class RedmineClient(object):
             return [self.get_project(id_) for id_ in project_ids]
         return Project.find()
 
-
     def get_issues(self, project_id=None):
         return Issue.find(None, None, project_id=project_id)
 
@@ -89,7 +85,7 @@ class RedmineClient(object):
         return Issue.find(issue_id,
             include='journals,assigned_to_id,attachments,children,relations')
 
-    def get_project_issues(self, _id, _limit=None, _offset=None):
+    def get_project_issues(self, _id, _limit=None, _offset=None, _skip_on_error=False):
         return_data = []
         if _limit:
             if _offset is None:
@@ -101,10 +97,15 @@ class RedmineClient(object):
                                 offset=_offset, sort='id', status_id='*')
         else:
             issues = Issue.find(None, None, project_id=_id, sort='id', status_id='*')
-        for issue_id in [issue.id for issue in issues]:
-            return_data.append(self.get_issue_details(issue_id))
+        for issue in issues:
+            try:
+                details = self.get_issue_details(issue.id)
+                return_data.append(details)
+            except ServerError, se:
+                print "Wasn't able to process issue " + issue.id
+                if not _skip_on_error:
+                    raise se
         return return_data
-        
 
     def get_user(self, user_id):
         return User.find(user_id, None, include='groups')
@@ -119,7 +120,6 @@ class RedmineClient(object):
 
     def get_project_members(self, id_):
         return Membership.find(None, None, project_id=id_)
-
 
     def get_roles(self):
         roles = Role.find()
