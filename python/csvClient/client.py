@@ -2,7 +2,7 @@ import sys
 import csv
 import csvClient
 
-maxInt = sys.maxsize
+maxInt = sys.maxint
 while True:
     # decrease the maxInt value by factor 10
     # as long as the OverflowError occurs.
