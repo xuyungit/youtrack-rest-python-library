@@ -329,7 +329,13 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                         target.deleteProjectCustomField(projectId, field.name)
                         create_project_custom_field(target, field, projectId)
             else:
-                create_project_custom_field(target, field, projectId)
+                try:
+                    create_project_custom_field(target, field, projectId)
+                except youtrack.YouTrackException, e:
+                    if e.response.status != 409:
+                        raise e
+                    else:
+                        print e
 
         # copy issues
         start = 0
