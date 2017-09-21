@@ -163,6 +163,10 @@ class Connection(object):
         xml = minidom.parseString(content)
         return [youtrack.Comment(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
 
+    def deleteComment(self, issue_id, comment_id, permanently=False):
+        return self._req('DELETE', '/issue/%s/comment/%s?permanently=%s' %
+                         (issue_id, comment_id, 'true' if permanently else 'false'))
+
     def getAttachments(self, id):
         response, content = self._req('GET', '/issue/' + id + '/attachment')
         xml = minidom.parseString(content)
