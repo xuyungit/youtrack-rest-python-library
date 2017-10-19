@@ -78,6 +78,9 @@ class Connection(object):
                 content_type = 'application/xml; charset=UTF-8'
             headers['Content-Type'] = content_type
             headers['Content-Length'] = str(len(body)) if body else '0'
+        elif method == 'GET' and content_type is not None:
+            headers = headers.copy()
+            headers['Accept'] = content_type
 
         response, content = self.http.request((self.baseUrl + url).encode('utf-8'), method, headers=headers, body=body)
         content = content.translate(None, '\0')
@@ -162,10 +165,6 @@ class Connection(object):
         response, content = self._req('GET', '/issue/' + id + '/comment')
         xml = minidom.parseString(content)
         return [youtrack.Comment(e, self) for e in xml.documentElement.childNodes if e.nodeType == Node.ELEMENT_NODE]
-
-    def deleteComment(self, issue_id, comment_id, permanently=False):
-        return self._req('DELETE', '/issue/%s/comment/%s?permanently=%s' %
-                         (issue_id, comment_id, 'true' if permanently else 'false'))
 
     def getAttachments(self, id):
         response, content = self._req('GET', '/issue/' + id + '/attachment')
@@ -721,8 +720,8 @@ class Connection(object):
         while True:
           urlFilterList = [('filter',filter)]
           finalUrl = '/issue/count?' + urllib.urlencode(urlFilterList)
-          response, content = self._req('GET', finalUrl)
-          result = eval(content.replace('callback',''))
+          response, content = self._req('GET', finalUrl, content_type="application/json")
+          result = json.loads(content)
           numberOfIssues = result['value']
           if (not waitForServer):
             return numberOfIssues
