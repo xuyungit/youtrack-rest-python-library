@@ -98,7 +98,7 @@ class Connection(object):
         return response, content
 
     def _reqXml(self, method, url, body=None, ignoreStatus=None):
-        response, content = self._req(method, url, body, ignoreStatus)
+        response, content = self._req(method, url, body, ignoreStatus, "application/xml")
         if response.has_key('content-type'):
             if (response["content-type"].find('application/xml') != -1 or response["content-type"].find(
                 'text/xml') != -1) and content is not None and content != '':
