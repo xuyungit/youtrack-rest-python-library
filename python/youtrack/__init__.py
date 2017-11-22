@@ -594,7 +594,7 @@ class Build(BundleElement):
         BundleElement.__init__(self, "build", xml, youtrack)
 
     def _update_specific_attributes(self, xml):
-        self.assembleDate = xml.getAttribute('assembleName')
+        self.assembleDate = xml.getAttribute('assembleDate')
 
 
 class OwnedFieldBundle(Bundle):
