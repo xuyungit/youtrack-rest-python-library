@@ -10,6 +10,7 @@ import urllib2
 import redmine
 import youtrack
 import youtrack.connection
+import time
 from youtrack.importHelper import create_bundle_safe
 from datetime import datetime
 from dateutil import parser
@@ -570,13 +571,28 @@ class RedmineImporter(object):
     def _add_attachments(self, issue):
         if not hasattr(issue, 'attachments'):
             return
+        max_attempts = 5
         for attach in issue.attachments:
             attach.author.login = self._create_user(attach.author).login
             if not attach.author.login:
                 attach.author.login = 'guest'
-            self._target.createAttachmentFromAttachment(
-                self._get_yt_issue_id(issue),
-                RedmineAttachment(attach, self._source))
+            attempts = max_attempts
+            while attempts:
+                attempts -= 1
+                try:
+                    self._target.createAttachmentFromAttachment(
+                        self._get_yt_issue_id(issue),
+                        RedmineAttachment(attach, self._source))
+                except Exception, e:
+                    print e
+                    if attempts:
+                        delay = 30 + (max_attempts - attempts - 1) * 10
+                        print "Can't import attachment: %s. Retry in %d s." % \
+                              (attach.filename, delay)
+                        time.sleep(delay)
+                    else:
+                        print 'Failed to import attachment: %s. Skipped.' % \
+                              attach.filename
 
     def _collect_relations(self, issue):
         link_types = {
