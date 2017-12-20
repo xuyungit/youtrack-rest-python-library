@@ -319,7 +319,13 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
         for pcf_ref in project_custom_fields:
             pcf = source.getProjectCustomField(projectId, pcf_ref.name)
             if hasattr(pcf, "bundle"):
-                create_bundle_from_bundle(source, target, pcf.bundle, source.getCustomField(pcf.name).type, user_importer)
+                try:
+                    create_bundle_from_bundle(source, target, pcf.bundle, source.getCustomField(pcf.name).type, user_importer)
+                except youtrack.YouTrackException, e:
+                    if e.response.status != 409:
+                        raise e
+                    else:
+                        print e
 
         target_project_fields = [pcf.name.lower() for pcf in target.getProjectCustomFields(projectId)]
         for field in project_custom_fields:
