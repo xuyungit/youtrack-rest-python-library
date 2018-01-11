@@ -60,10 +60,17 @@ class Connection(object):
             self.headers = {'X-YouTrack-ApiKey': api_key}
 
     def _login(self, login, password):
+        body = 'login=%s&password=%s' % (urlquote(login), urlquote(password))
         response, content = self.http.request(
-            self.baseUrl + "/user/login?login=" + urllib.quote_plus(login) + "&password=" + urllib.quote_plus(password),
-            'POST',
-            headers={'Content-Length': '0', 'Connection': 'keep-alive'})
+            uri=self.baseUrl + '/user/login',
+            method='POST',
+            body=body,
+            headers={
+                'Connection': 'keep-alive',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': str(len(body))
+            }
+        )
         if response.status != 200:
             raise youtrack.YouTrackException('/user/login', response, content)
         self.headers = {'Cookie': response['set-cookie'],
