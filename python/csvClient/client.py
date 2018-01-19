@@ -2,7 +2,7 @@ import sys
 import csv
 import csvClient
 
-maxInt = sys.maxsize
+maxInt = sys.maxint
 while True:
     # decrease the maxInt value by factor 10
     # as long as the OverflowError occurs.
@@ -26,7 +26,7 @@ class Client(object):
                 if len(field_name)]
 
     def _get_reader(self):
-        return csv.reader(open(self._file_path, "r"),
+        return csv.reader(open(self._file_path, "rU"),
                           delimiter=csvClient.CSV_DELIMITER)
 
     def get_rows(self):

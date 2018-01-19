@@ -15,13 +15,16 @@ import tempfile
 import functools
 import re
 
+
 def urlquote(s):
     return urllib.quote(utf8encode(s), safe="")
+
 
 def utf8encode(source):
     if isinstance(source, unicode):
         source = source.encode('utf-8')
     return source
+
 
 def relogin_on_401(f):
     @functools.wraps(f)
@@ -35,39 +38,56 @@ def relogin_on_401(f):
                     raise e
                 if e.response.status == 504:
                     time.sleep(30)
+                elif self._last_credentials is not None:
+                    self._login(*self._last_credentials)
                 else:
-                    self._login(*self._credentials)
+                    break
                 attempts -= 1
         return f(self, *args, **kwargs)
     return wrapped
 
 
 class Connection(object):
-    def __init__(self, url, login=None, password=None, proxy_info=None, api_key=None):
-        self.http = httplib2.Http(disable_ssl_certificate_validation=True) if proxy_info is None else httplib2.Http(
-            proxy_info=proxy_info, disable_ssl_certificate_validation=True)
-
-        # Remove the last character of the url ends with "/"
-        if url:
-            url = url.rstrip('/')
-
-        self.url = url
-        self.baseUrl = url + "/rest"
-        if api_key is None:
-            self._credentials = (login, password)
-            self._login(*self._credentials)
+    def __init__(self, url, login=None, password=None, proxy_info=None, token=None):
+        if proxy_info is None:
+            self.http = httplib2.Http(disable_ssl_certificate_validation=True)
         else:
-            self.headers = {'X-YouTrack-ApiKey': api_key}
+            self.http = httplib2.Http(disable_ssl_certificate_validation=True,
+                                      proxy_info=proxy_info)
+
+        self.url = url.rstrip('/')
+        self.baseUrl = self.url + "/rest"
+        self.headers = dict()
+        self._last_credentials = None
+
+        if token:
+            self.set_auth_token(token)
+        elif login:
+            self._login(login, password)
+
+    def set_auth_token(self, token):
+        if token:
+            self.headers = {'Authorization': 'Bearer ' + token}
 
     def _login(self, login, password):
+        if login is None:
+            login = ''
+        if password is None:
+            password = ''
+        body = 'login=%s&password=%s' % (urlquote(login), urlquote(password))
         response, content = self.http.request(
-            self.baseUrl + "/user/login?login=" + urllib.quote_plus(login) + "&password=" + urllib.quote_plus(password),
-            'POST',
-            headers={'Content-Length': '0', 'Connection': 'keep-alive'})
+            uri=self.baseUrl + '/user/login',
+            method='POST',
+            body=body,
+            headers={'Connection': 'keep-alive',
+                     'Content-Type': 'application/x-www-form-urlencoded',
+                     'Content-Length': str(len(body))}
+        )
         if response.status != 200:
             raise youtrack.YouTrackException('/user/login', response, content)
         self.headers = {'Cookie': response['set-cookie'],
                         'Cache-Control': 'no-cache'}
+        self._last_credentials = (login, password)
 
     @relogin_on_401
     def _req(self, method, url, body=None, ignoreStatus=None, content_type=None):
@@ -78,6 +98,9 @@ class Connection(object):
                 content_type = 'application/xml; charset=UTF-8'
             headers['Content-Type'] = content_type
             headers['Content-Length'] = str(len(body)) if body else '0'
+        elif method == 'GET' and content_type is not None:
+            headers = headers.copy()
+            headers['Accept'] = content_type
 
         response, content = self.http.request((self.baseUrl + url).encode('utf-8'), method, headers=headers, body=body)
         content = content.translate(None, '\0')
@@ -95,7 +118,7 @@ class Connection(object):
         return response, content
 
     def _reqXml(self, method, url, body=None, ignoreStatus=None):
-        response, content = self._req(method, url, body, ignoreStatus)
+        response, content = self._req(method, url, body, ignoreStatus, "application/xml")
         if response.has_key('content-type'):
             if (response["content-type"].find('application/xml') != -1 or response["content-type"].find(
                 'text/xml') != -1) and content is not None and content != '':
@@ -717,8 +740,8 @@ class Connection(object):
         while True:
           urlFilterList = [('filter',filter)]
           finalUrl = '/issue/count?' + urllib.urlencode(urlFilterList)
-          response, content = self._req('GET', finalUrl)
-          result = eval(content.replace('callback',''))
+          response, content = self._req('GET', finalUrl, content_type="application/json")
+          result = json.loads(content)
           numberOfIssues = result['value']
           if (not waitForServer):
             return numberOfIssues
@@ -878,7 +901,7 @@ class Connection(object):
     def getWorkItems(self, issue_id):
         try:
             response, content = self._req('GET',
-                '/issue/%s/timetracking/workitem' % urlquote(issue_id))
+                '/issue/%s/timetracking/workitem' % urlquote(issue_id), content_type="application/xml")
             xml = minidom.parseString(content)
             return [youtrack.WorkItem(e, self) for e in xml.documentElement.childNodes if
                     e.nodeType == Node.ELEMENT_NODE]

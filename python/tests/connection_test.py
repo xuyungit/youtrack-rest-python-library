@@ -1,14 +1,14 @@
 import random
 import unittest
 from youtrack import YouTrackException, EnumBundle, EnumField, UserBundle
-from youtrack.connection import Connection, youtrack, os, os
+from youtrack.connection import Connection, youtrack
 import math
 
 class ConnectionTest(unittest.TestCase):
 
     def setUp(self):
         #self.con = Connection('http://teamsys.intellij.net', 'resttest', 'resttest')
-        self.con = Connection("http://localhost:8081", "root", "root")
+        self.con = Connection("http://localhost:8080", "root", "root")
     def test_getProject(self):
         p = self.con.getProject('SB')
         self.assertEqual(p.id, 'SB')
@@ -56,6 +56,9 @@ class ConnectionTest(unittest.TestCase):
                 issue["assigneeName"] = issue["Assignee"]
                 del issue.Assignee
         self.con.importIssues("B", "assignees", issues)
+
+    def test_getNumberOfIssues(self):
+        self.assertGreater(self.con.getNumberOfIssues(), -1)
 
 
 class EnumBundleTests(unittest.TestCase) :

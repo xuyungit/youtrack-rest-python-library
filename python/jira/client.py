@@ -69,5 +69,5 @@ class JiraClient(object):
     def _login(self, login, password):
         # response, content = self._post(self._url + "/auth/1/session", {"username": login, "password": password})
         # self._headers['JSESSIONID'] = content['session']['value']
-        auth = base64.encodestring(login + ':' + password)
+        auth = base64.b64encode(login + ':' + password)
         self._headers['Authorization'] = 'Basic ' + auth

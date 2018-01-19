@@ -9,7 +9,7 @@ import sys
 from fbugz.fbSOAPClient import FBClient
 from youtrack.connection import Connection
 from youtrack import Group, User, Issue, Comment, Link
-from fbugz import embaddedFogBugz
+from fbugz import defaultFBugz
 import fbugz
 from youtrack import YouTrackException
 from youtrack.importHelper import *
