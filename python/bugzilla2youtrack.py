@@ -127,8 +127,18 @@ def get_yt_field_name(field_name, target):
 def to_yt_issue(bz_issue, project_id, target):
     issue = Issue()
     issue.comments = []
+    bzStatus = None
+    bzRes = None
+
     for key in bz_issue.keys():
         value = bz_issue[key]
+        if bugzilla.USE_STATE_MAP and key == bugzilla.STATE_STATUS:
+            bzStatus = value
+            continue 
+        if bugzilla.USE_STATE_MAP and key == bugzilla.STATE_RESOLUTION:
+            bzRes    = value
+            continue 
+
         if key in ['flags', 'tags', 'attachments', 'comments']:
             continue
         field_name = get_yt_field_name(key, target)
@@ -170,6 +180,19 @@ def to_yt_issue(bz_issue, project_id, target):
             yt_comment = to_yt_comment(comment, target)
             if yt_comment is not None and yt_comment.text.lstrip() != '':
                 issue.comments.append(yt_comment)
+    if bugzilla.USE_STATE_MAP:
+        prestate = bugzilla.SATE_MAP[bzStatus]
+        resultState = None
+        if isinstance(prestate, str):
+            resultState = prestate
+        else:
+            if bzRes in prestate:
+                resultState = prestate[bzRes]
+            else:
+                resultState = prestate["*"]
+        #print "state %s for %s, %s" % (resultState, bzStatus, bzRes)
+        issue["State"] = resultState
+
     return issue
 
 
