@@ -181,7 +181,7 @@ def to_yt_issue(bz_issue, project_id, target):
             if yt_comment is not None and yt_comment.text.lstrip() != '':
                 issue.comments.append(yt_comment)
     if bugzilla.USE_STATE_MAP:
-        prestate = bugzilla.SATE_MAP[bzStatus]
+        prestate = bugzilla.STATE_MAP[bzStatus]
         resultState = None
         if isinstance(prestate, str):
             resultState = prestate
