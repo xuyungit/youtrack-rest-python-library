@@ -1,6 +1,5 @@
 from youtrack import YouTrackException, Issue
 import youtrack
-from youtrack.connection import Connection
 from youtrack.importHelper import create_custom_field
 import itertools
 
@@ -11,6 +10,7 @@ TYPE = u'type'
 POLICY = u'bundle_policy'
 AUTO_ATTACHED = u'auto_attached'
 NUMBER_IN_PROJECT = u'numberInProject'
+
 
 class YouTrackImporter(object):
     def __init__(self, source, target, import_config):
@@ -49,7 +49,6 @@ class YouTrackImporter(object):
     def _get_custom_fields_for_projects(self, project_ids):
         raise NotImplementedError()
 
-
     def _create_project(self, project_id, project_name, project_lead_login):
         try:
             self._target.getProject(project_id)
@@ -58,13 +57,12 @@ class YouTrackImporter(object):
 
     def _attach_fields_to_project(self, project_id):
         for yt_field in self._get_custom_fields_for_projects([project_id]):
-            if not yt_field[u'auto_attached']:
-                # this means, that field was not attached to project yet
-                field_name = yt_field[NAME]
-                try:
-                    self._target.createProjectCustomFieldDetailed(project_id, field_name, u'No ' + field_name)
-                except YouTrackException:
-                    print(u'Field [%s] is already attached' % field_name)
+            field_name = yt_field[NAME]
+            try:
+                self._target.createProjectCustomFieldDetailed(project_id, field_name, u'No ' + field_name)
+            except YouTrackException:
+                pass
+                # print(u'Field [%s] is already attached' % field_name)
 
     def _import_issues(self, project_id):
         limit = 100
