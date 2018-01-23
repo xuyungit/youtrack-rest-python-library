@@ -250,7 +250,7 @@ class Connection(object):
             raise e
             
 
-    def _process_attachmnets(self, authorLogin, content, contentLength, contentType, created, group, issueId, name,
+    def _process_attachments(self, authorLogin, content, contentLength, contentType, created, group, issueId, name,
                              url_prefix='/issue/'):
         if contentType is not None:
             content.contentType = contentType
@@ -295,13 +295,13 @@ class Connection(object):
 
     def createAttachment(self, issueId, name, content, authorLogin='', contentType=None, contentLength=None,
                          created=None, group=''):
-        return self._process_attachmnets(authorLogin, content, contentLength, contentType, created, group, issueId,
-            name)
+        return self._process_attachments(authorLogin, content, contentLength, contentType, created, group, issueId,
+                                         name)
 
     def importAttachment(self, issue_id, name, content, authorLogin, contentType, contentLength, created=None,
                          group=''):
-        return self._process_attachmnets(authorLogin, content, contentLength, contentType, created, group, issue_id,
-            name, '/import/')
+        return self._process_attachments(authorLogin, content, contentLength, contentType, created, group, issue_id,
+                                         name, '/import/')
 
 
     def getLinks(self, id, outwardOnly=False):
@@ -439,7 +439,7 @@ class Connection(object):
                             ca = ca.encode('utf-8')
                         if isinstance(val, unicode):
                             val = val.encode('utf-8')
-                        record += ' ' + ca + '=' + quoteattr(val)
+                        record += ' ' + ca + '=' + quoteattr(val, {"\n" : "&#xA;"})
                     record += '/>\n'
 
             record += '  </issue>\n'

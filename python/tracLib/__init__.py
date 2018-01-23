@@ -28,6 +28,7 @@ class TracIssue(object):
         self.reporter = None
         self.cc = set([])
         self.version = None
+        self.milestone = None
         self.status = None
         self.resolution = None
         self.summary = None
@@ -39,6 +40,13 @@ class TracIssue(object):
         self.workitems = set([])
 
 class TracVersion(object):
+
+    def __init__(self, name):
+        self.name = name
+        self.time = None
+        self.description = ""
+
+class TracMilestone(object):
 
     def __init__(self, name):
         self.name = name

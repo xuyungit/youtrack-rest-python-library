@@ -134,10 +134,23 @@ class Client(object):
             trac_versions.append(version)
         return trac_versions
 
+    def get_milestones(self):
+        cursor = self.db_cnx.cursor()
+        cursor.execute("SELECT name, completed, description FROM milestone")
+        trac_milestones = list([])
+        for row in cursor:
+            version = TracMilestone(row[0])
+            if row[1]:
+                version.time = to_unix_time(row[1])
+            if row[2] is not None:
+                version.description = row[2]
+            trac_milestones.append(version)
+        return trac_milestones
+
     def get_issues(self):
         cursor = self.db_cnx.cursor()
         cursor.execute("SELECT id, type, time, changetime, component, severity, priority, owner, reporter,"
-                       "cc, version, status, resolution, summary, description, keywords FROM ticket")
+                       "cc, version, milestone, status, resolution, summary, description, keywords FROM ticket")
         trac_issues = list([])
         for row in cursor:
             issue = TracIssue(row[0])
@@ -151,18 +164,19 @@ class Client(object):
                         cc_name = self._get_user_login(c.strip())
                         if cc_name is not None:
                             issue.cc.add(cc_name)
-            issue.summary = row[13]
-            issue.description = row[14]
+            issue.summary = row[14]
+            issue.description = row[15]
             issue.custom_fields["Type"] = row[1]
             issue.custom_fields["Component"] = row[4]
             issue.custom_fields["Severity"] = row[5]
             issue.custom_fields["Priority"] = row[6]
             issue.custom_fields["Owner"] = self._get_user_login(row[7])
             issue.custom_fields["Version"] = row[10]
-            issue.custom_fields["Status"] = row[11]
-            issue.custom_fields["Resolution"] = row[12]
-            if row[15] is not None:
-                keywords = row[15].rsplit(",")
+            issue.custom_fields["Milestone"] = row[11]
+            issue.custom_fields["Status"] = row[12]
+            issue.custom_fields["Resolution"] = row[13]
+            if row[16] is not None:
+                keywords = row[16].rsplit(",")
                 for kw in keywords:
                     if len(kw) > 0:
                         issue.keywords.add(kw.strip())
