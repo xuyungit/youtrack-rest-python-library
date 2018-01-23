@@ -1,3 +1,5 @@
+import codecs
+import os
 import sys
 import csv
 import csvClient
@@ -25,9 +27,16 @@ class Client(object):
                 for field_name in [h.strip() for h in header]
                 if len(field_name)]
 
+    def has_bom(self):
+        b_cnt = min(32, os.path.getsize(self._file_path))
+        raw = open(self._file_path, 'rb').read(b_cnt)
+        return raw.startswith(codecs.BOM_UTF8)
+
     def _get_reader(self):
-        return csv.reader(open(self._file_path, "rU"),
-                          delimiter=csvClient.CSV_DELIMITER)
+        fh = open(self._file_path, "rU")
+        if self.has_bom():
+            fh.read(len(codecs.BOM_UTF8))
+        return csv.reader(fh, delimiter=csvClient.CSV_DELIMITER)
 
     def get_rows(self):
         reader = self._get_reader()
