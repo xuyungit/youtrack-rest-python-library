@@ -1,7 +1,11 @@
 #! /usr/bin/env python
 
 import sys
-import re
+
+if sys.version_info >= (3, 0):
+    print("\nThe script doesn't support python 3. Please use python 2.7+\n")
+    sys.exit(1)
+
 import requests
 import csv
 import csvClient
@@ -50,12 +54,14 @@ def main():
     github2csv(issues_csv_file, comments_csv_file, github_user, github_password, github_repo, github_repo_owner)
     csv2youtrack.csv2youtrack(issues_csv_file, youtrack_url, youtrack_login, youtrack_password, comments_csv_file)
 
+
 def get_last_part_of_url(url_string):
     return url_string.split('/').pop()
 
+
 # based on https://gist.github.com/unbracketed/3380407
 def write_issues(r, issues_csvout, comments_csvout, repo, auth):
-    "output a list of issues to csv"
+    """output a list of issues to csv"""
     if not r.status_code == 200:
         raise Exception(r.status_code)
     for issue in r.json():

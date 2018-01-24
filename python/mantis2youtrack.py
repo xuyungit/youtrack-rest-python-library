@@ -1,19 +1,24 @@
 #! /usr/bin/env python
 
+import sys
+
+if sys.version_info >= (3, 0):
+    print("\nThe script doesn't support python 3. Please use python 2.7+\n")
+    sys.exit(1)
+
 import urllib2
 from youtrack.connection import Connection
 from mantis.mantisClient import MantisClient
 from youtrack import *
-import sys
 import mantis
 import mantis.defaultMantis
 from StringIO import StringIO
 from youtrack.importHelper import *
 import youtrack.importHelper
 
+
 def main():
-    target_url, target_login, target_pass, mantis_db, mantis_host, mantis_port, mantis_login, mantis_pass = sys.argv[
-                                                                                                            1:9]
+    target_url, target_login, target_pass, mantis_db, mantis_host, mantis_port, mantis_login, mantis_pass = sys.argv[1:9]
 
     mantis.FIELD_TYPES.update(youtrack.EXISTING_FIELD_TYPES)
     mantis_product_names = [p.strip() for p in sys.argv[9:]]
@@ -204,7 +209,7 @@ def create_yt_custom_field(connection, mantis_field_name,
     Returns:
         new field name
     """
-    print "Processing custom field with name [ %s ]" % mantis_field_name.encode('utf-8')
+    print("Processing custom field with name [ %s ]" % mantis_field_name.encode('utf-8'))
     field_name = mantis.FIELD_NAMES[mantis_field_name] if mantis_field_name in mantis.FIELD_NAMES else mantis_field_name
     create_custom_field(connection, mantis.FIELD_TYPES[field_name], field_name, auto_attach,
         bundle_policy=attach_bundle_policy)
@@ -264,7 +269,7 @@ def add_values_to_fields(connection, project_id, mantis_field_name, values, mant
 
 def import_attachments(issue_attachments, issue_id, target):
     for attachment in issue_attachments:
-        print "Processing issue attachment [ %s ]" % str(attachment.id)
+        print("Processing issue attachment [ %s ]" % str(attachment.id))
         content = StringIO(attachment.content)
         author_login = "guest"
         if attachment.author is not None:
@@ -281,12 +286,12 @@ def import_attachments(issue_attachments, issue_id, target):
                 None,
                 attachment.date_added)
         except YouTrackException:
-            print "Failed to import attachment"
-        except urllib2.HTTPError, e:
+            print("Failed to import attachment")
+        except urllib2.HTTPError as e:
             msg = 'Failed to import attachment [%s] for issue [%s]. Exception: [%s]' % (attachment.filename, issue_id, str(e))
             if isinstance(msg, unicode):
                 msg = msg.encode('utf-8')
-            print msg
+            print(msg)
 
 
 def is_prefix_of_any_other_tag(tag, other_tags):
@@ -328,15 +333,15 @@ def import_tags(source, target, project_ids, collected_tags):
 
 def mantis2youtrack(target_url, target_login, target_pass, mantis_db_name, mantis_db_host, mantis_db_port,
                     mantis_db_login, mantis_db_pass, mantis_project_names):
-    print "target_url             : " + target_url
-    print "target_login           : " + target_login
-    print "target_pass            : " + target_pass
-    print "mantis_db_name         : " + mantis_db_name
-    print "mantis_db_host         : " + mantis_db_host
-    print "mantis_db_port         : " + mantis_db_port
-    print "mantis_db_login        : " + mantis_db_login
-    print "mantis_db_pass         : " + mantis_db_pass
-    print "mantis_project_names   : " + repr(mantis_project_names)
+    print("target_url             : " + target_url)
+    print("target_login           : " + target_login)
+    print("target_pass            : " + target_pass)
+    print("mantis_db_name         : " + mantis_db_name)
+    print("mantis_db_host         : " + mantis_db_host)
+    print("mantis_db_port         : " + mantis_db_port)
+    print("mantis_db_login        : " + mantis_db_login)
+    print("mantis_db_pass         : " + mantis_db_pass)
+    print("mantis_project_names   : " + repr(mantis_project_names))
 
     #connacting to yt
     target = Connection(target_url, target_login, target_pass)
@@ -344,10 +349,10 @@ def mantis2youtrack(target_url, target_login, target_pass, mantis_db_name, manti
     client = MantisClient(mantis_db_host, int(mantis_db_port), mantis_db_login,
         mantis_db_pass, mantis_db_name, mantis.CHARSET, mantis.BATCH_SUBPROJECTS)
     if not len(mantis_project_names):
-        print "You should declarer at least one project to import"
+        print("You should declarer at least one project to import")
         sys.exit()
 
-    print "Creating custom fields definitions"
+    print("Creating custom fields definitions")
     create_yt_custom_field(target, u"priority")
     create_yt_custom_field(target, u"severity")
     create_yt_custom_field(target, u"category_id")
@@ -375,30 +380,30 @@ def mantis2youtrack(target_url, target_login, target_pass, mantis_db_name, manti
     custom_fields = client.get_mantis_custom_fields(project_ids)
 
     for cf_def in custom_fields:
-        print "Processing custom field [ %s ]" % cf_def.name.encode('utf-8')
+        print("Processing custom field [ %s ]" % cf_def.name.encode('utf-8'))
         process_mantis_custom_field(target, cf_def)
 
-    print "Creating custom fields definitions finished"
+    print("Creating custom fields definitions finished")
 
     issue_tags = set([])
     for name in mantis_project_names:
         project_id = str(client.get_project_id_by_name(name))
         name = name.replace("/", " ")
-        print "Creating project [ %s ] with name [ %s ]" % (project_id, name)
+        print("Creating project [ %s ] with name [ %s ]" % (project_id, name))
         try:
             target.getProject(project_id)
         except YouTrackException:
             target.createProjectDetailed(project_id, name, client.get_project_description(project_id),
                 target_login)
 
-        print "Importing components to project [ %s ]" % project_id
+        print("Importing components to project [ %s ]" % project_id)
         add_values_to_fields(target, project_id, u"category_id",
             client.get_mantis_categories(project_id),
             lambda component, yt_bundle, value_mapping:
             to_yt_subsystem(component, yt_bundle, value_mapping))
-        print "Importing components to project [ %s ] finished" % project_id
+        print("Importing components to project [ %s ] finished" % project_id)
 
-        print "Importing versions to project [ %s ]" % project_id
+        print("Importing versions to project [ %s ]" % project_id)
         mantis_versions = client.get_mantis_versions(project_id)
         add_values_to_fields(target, project_id, u"version", mantis_versions,
             lambda version, yt_bundle, value_mapping:
@@ -409,18 +414,18 @@ def mantis2youtrack(target_url, target_login, target_pass, mantis_db_name, manti
             lambda version, yt_bundle, value_mapping:
             to_yt_version(version, yt_bundle, value_mapping))
 
-        print "Importing versions to project [ %s ] finished" % project_id
+        print("Importing versions to project [ %s ] finished" % project_id)
 
-        print "Attaching custom fields to project [ %s ]" % project_id
+        print("Attaching custom fields to project [ %s ]" % project_id)
         cf_ids = client.get_custom_fields_attached_to_project(project_id)
 
         for cf in custom_fields:
             if cf.field_id in cf_ids:
                 attach_field_to_project(target, project_id, cf.name)
 
-        print "Attaching custom fields to project [ %s ] finished" % project_id
+        print("Attaching custom fields to project [ %s ] finished" % project_id)
 
-        print "Importing issues to project [ %s ]" % project_id
+        print("Importing issues to project [ %s ]" % project_id)
         max_count = 100
         after = 0
         go_on = True
@@ -440,11 +445,11 @@ def mantis2youtrack(target_url, target_login, target_pass, mantis_db_name, manti
                     import_attachments(issue_attachments, issue_id, target)
                     issue_tags |= set(client.get_issue_tags_by_id(issue['id']))
 
-        print "Importing issues to project [ %s ] finished" % project_id
+        print("Importing issues to project [ %s ] finished" % project_id)
 
     import_tags(client, target, project_ids, issue_tags)
 
-    print "Importing issue links"
+    print("Importing issue links")
     go_on = True
     after = 0
     max_count = 200
@@ -454,12 +459,12 @@ def mantis2youtrack(target_url, target_login, target_pass, mantis_db_name, manti
         yt_issue_links = []
         for link in mantis_issue_links:
             go_on = True
-            print "Processing issue link for source issue [ %s ]" % str(link.source)
+            print("Processing issue link for source issue [ %s ]" % str(link.source))
             yt_issue_links.append(to_yt_link(link))
         after += max_count
-        print target.importLinks(yt_issue_links)
+        print(target.importLinks(yt_issue_links))
 
-    print "Importing issue links finished"
+    print("Importing issue links finished")
 
 if __name__ == "__main__":
     main()

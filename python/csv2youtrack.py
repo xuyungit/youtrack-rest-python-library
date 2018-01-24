@@ -1,11 +1,16 @@
 #! /usr/bin/env python
 
+import sys
+
+if sys.version_info >= (3, 0):
+    print("\nThe script doesn't support python 3. Please use python 2.7+\n")
+    sys.exit(1)
+
 import os
 import re
 import calendar
 import time
 import datetime
-import sys
 import csvClient
 from csvClient.client import Client
 import csvClient.youtrackMapping
@@ -16,6 +21,7 @@ csvClient.FIELD_TYPES.update(youtrack.EXISTING_FIELD_TYPES)
 from youtrack import YouTrackException, Issue, User, Comment
 from youtrack.connection import Connection
 from youtrack.importHelper import create_custom_field
+
 
 
 def main():

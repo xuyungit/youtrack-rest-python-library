@@ -1,14 +1,16 @@
 #! /usr/bin/env python
 
-# migrate project from youtrack to youtrack
-import os
 import sys
+
+if sys.version_info >= (3, 0):
+    print("\nThe script doesn't support python 3. Please use python 2.7+\n")
+    sys.exit(1)
+
+import os
 from youtrack.connection import Connection, youtrack, utf8encode
 import traceback
-
 from sync.users import UserImporter
 from sync.links import LinkImporter
-
 import re
 import getopt
 import datetime
@@ -19,7 +21,7 @@ hours_in_a_day = 8
 
 
 def usage():
-    print """
+    print("""
 Usage:
     %s [OPTIONS] s_url s_user s_pass t_url t_user t_pass [project_id ...]
 
@@ -43,7 +45,7 @@ Options:
     -p,  Covert period values (used as workaroud for JT-19362)
     -t TIME_SETTINGS,
          Time Tracking settings in format "days_in_a_week:hours_in_a_day"
-""" % os.path.basename(sys.argv[0])
+""" % os.path.basename(sys.argv[0]))
 
 
 def main():
@@ -86,12 +88,12 @@ def main():
         (source_url, source_login, source_password,
          target_url, target_login, target_password) = args[:6]
         project_ids = args[6:]
-    except getopt.GetoptError, e:
-        print e
+    except getopt.GetoptError as e:
+        print(e)
         usage()
         sys.exit(1)
-    except ValueError, e:
-        print 'Not enough arguments'
+    except ValueError as e:
+        print('Not enough arguments')
         usage()
         sys.exit(1)
     if attachments_only:
@@ -102,6 +104,7 @@ def main():
         youtrack2youtrack(source_url, source_login, source_password,
                           target_url, target_login, target_password,
                           project_ids, params=params)
+
 
 def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_importer):
     source_bundle = source.getBundle(bundle_type, bundle_name)
@@ -129,7 +132,7 @@ def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_imp
             for user in users_to_add:
                 try:
                     target.addValueToBundle(target_bundle, user)
-                except youtrack.YouTrackException, e:
+                except youtrack.YouTrackException as e:
                     if e.response.status != 409:
                         raise e
             return
@@ -138,7 +141,7 @@ def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_imp
                       utf8encode(elem.name).strip().capitalize() not in target_value_names]:
             try:
                 target.addValueToBundle(target_bundle, value)
-            except youtrack.YouTrackException, e:
+            except youtrack.YouTrackException as e:
                 if e.response.status != 409:
                     raise e
     else:
@@ -151,7 +154,8 @@ def create_bundle_from_bundle(source, target, bundle_name, bundle_type, user_imp
             users = set([source.getUser(elem.owner) for elem in source_bundle.values if elem.owner is not None])
         user_importer.importUsersRecursively(users)
         user_importer.importGroupsWithoutUsers(groups)
-        print target.createBundle(source_bundle)
+        print(target.createBundle(source_bundle))
+
 
 def create_project_custom_field(target, field, project_id):
     params = dict([])
@@ -162,13 +166,14 @@ def create_project_custom_field(target, field, project_id):
         emptyFieldText = field.emtyFieldText
     target.createProjectCustomFieldDetailed(project_id, field.name, emptyFieldText, params)
 
+
 def create_project_stub(source, target, projectId, user_importer):
     project = source.getProject(projectId)
 
-    print "Create project stub [" + project.name + "]"
+    print("Create project stub [" + project.name + "]")
     lead = source.getUser(project.lead)
 
-    print "Create project lead [" + lead.login + "]"
+    print("Create project lead [" + lead.login + "]")
     user_importer.importUser(lead)
 
     try:
@@ -177,6 +182,7 @@ def create_project_stub(source, target, projectId, user_importer):
         target.createProject(project)
 
     return target.getProject(projectId)
+
 
 def enable_time_tracking(source, target, project_id):
     dst_settings = target.getProjectTimeTrackingSettings(project_id)
@@ -191,10 +197,11 @@ def enable_time_tracking(source, target, project_id):
                 f_est = src_settings.EstimateField
                 f_spent = src_settings.TimeSpentField
             if src_settings.Enabled:
-                print "Enabling Time Tracking"
+                print("Enabling Time Tracking")
                 target.setProjectTimeTrackingSettings(project_id, f_est, f_spent, True)
                 return True
     return False
+
 
 def period_to_minutes(value):
     minutes = 0
@@ -226,15 +233,15 @@ def create_issues(target, issues, last_issue_number):
         next_number = last_issue_number + 1
         number_gap = int(issue.numberInProject) - last_issue_number - 1
         for i in range(next_number, next_number + number_gap):
-            print 'Creating and deleting dummy issue #%s-%d' % (issue.projectShortName, i)
+            print('Creating and deleting dummy issue #%s-%d' % (issue.projectShortName, i))
             target.createIssue(issue.projectShortName, None, 'dummy', None)
             target.deleteIssue('%s-%d' % (issue.projectShortName, i))
         try:
-            print 'Creating issue from source issue with id %s' % issue.id
+            print('Creating issue from source issue with id %s' % issue.id)
             target.createIssue(issue.projectShortName, None, summary, description, permittedGroup=group)
-        except youtrack.YouTrackException, e:
-            print 'Cannot create issue from source issue with id %s' % issue.id
-            print e
+        except youtrack.YouTrackException as e:
+            print('Cannot create issue from source issue with id %s' % issue.id)
+            print(e)
         last_issue_number = int(issue.numberInProject)
     return last_issue_number
 
@@ -242,7 +249,7 @@ def create_issues(target, issues, last_issue_number):
 def youtrack2youtrack(source_url, source_login, source_password, target_url, target_login, target_password,
                       project_ids, query='', params=None):
     if not len(project_ids):
-        print "You should sign at least one project to import"
+        print("You should sign at least one project to import")
         return
     if params is None:
         params = {}
@@ -251,12 +258,12 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
     target = Connection(target_url, target_login, target_password)
     #, proxy_info = httplib2.ProxyInfo(socks.PROXY_TYPE_HTTP, 'localhost', 8888)
 
-    print "Import issue link types"
+    print("Import issue link types")
     for ilt in source.getIssueLinkTypes():
         try:
-            print target.createIssueLinkType(ilt)
-        except youtrack.YouTrackException, e:
-            print e.message
+            print(target.createIssueLinkType(ilt))
+        except youtrack.YouTrackException as e:
+            print(e.message)
 
     user_importer = UserImporter(source, target, caching_users=params.get('enable_user_caching', True))
     link_importer = LinkImporter(target)
@@ -286,14 +293,14 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
         if source_cf.type.lower() == 'period':
             period_cf_names.append(source_cf.name.lower())
 
-        print "Processing custom field '%s'" % utf8encode(cf_name)
+        print("Processing custom field '%s'" % utf8encode(cf_name))
         if cf_name in target_cf_names:
             target_cf = target.getCustomField(cf_name)
             if not(target_cf.type == source_cf.type):
-                print "In your target and source YT instances you have field with name [ %s ]" % utf8encode(cf_name)
-                print "They have different types. Source field type [ %s ]. Target field type [ %s ]" %\
-                      (source_cf.type, target_cf.type)
-                print "exiting..."
+                print("In your target and source YT instances you have field with name [ %s ]" % utf8encode(cf_name))
+                print("They have different types. Source field type [ %s ]. Target field type [ %s ]" %
+                      (source_cf.type, target_cf.type))
+                print("exiting...")
                 exit()
         else:
             if hasattr(source_cf, "defaultBundle"):
@@ -321,11 +328,11 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
             if hasattr(pcf, "bundle"):
                 try:
                     create_bundle_from_bundle(source, target, pcf.bundle, source.getCustomField(pcf.name).type, user_importer)
-                except youtrack.YouTrackException, e:
+                except youtrack.YouTrackException as e:
                     if e.response.status != 409:
                         raise e
                     else:
-                        print e
+                        print(e)
 
         target_project_fields = [pcf.name.lower() for pcf in target.getProjectCustomFields(projectId)]
         for field in project_custom_fields:
@@ -337,11 +344,11 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
             else:
                 try:
                     create_project_custom_field(target, field, projectId)
-                except youtrack.YouTrackException, e:
+                except youtrack.YouTrackException as e:
                     if e.response.status != 409:
                         raise e
                     else:
-                        print e
+                        print(e)
 
         # copy issues
         start = 0
@@ -350,12 +357,12 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
         sync_workitems = enable_time_tracking(source, target, projectId)
         tt_settings = target.getProjectTimeTrackingSettings(projectId)
 
-        print "Import issues"
+        print("Import issues")
         last_created_issue_number = 0
 
         while True:
             try:
-                print "Get issues from " + str(start) + " to " + str(start + max)
+                print("Get issues from " + str(start) + " to " + str(start + max))
                 issues = source.getIssues(projectId, query, start, max)
 
                 if len(issues) <= 0:
@@ -372,7 +379,7 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                 users = set([])
 
                 for issue in issues:
-                    print "Collect users for issue [%s]" % issue.id
+                    print("Collect users for issue [%s]" % issue.id)
 
                     users.add(issue.getReporter())
                     if issue.hasAssignee():
@@ -380,14 +387,16 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                             users.update(issue.getAssignee())
                         else:
                             users.add(issue.getAssignee())
-                    #TODO: http://youtrack.jetbrains.net/issue/JT-6100
+                    # TODO: http://youtrack.jetbrains.net/issue/JT-6100
                     users.add(issue.getUpdater())
-                    if issue.hasVoters(): users.update(issue.getVoters())
-                    for comment in issue.getComments(): users.add(comment.getAuthor())
+                    if issue.hasVoters():
+                        users.update(issue.getVoters())
+                    for comment in issue.getComments():
+                        users.add(comment.getAuthor())
 
-                    print "Collect links for issue [%s]" % issue.id
+                    print("Collect links for issue [%s]" % issue.id)
                     link_importer.collectLinks(issue.getLinks(True))
-                    #links.extend(issue.getLinks(True))
+                    # links.extend(issue.getLinks(True))
 
                     # fix problem with comment.text
                     for comment in issue.getComments():
@@ -396,19 +405,19 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
 
                 user_importer.importUsersRecursively(users)
 
-                print "Create issues [" + str(len(issues)) + "]"
+                print("Create issues [" + str(len(issues)) + "]")
                 if params.get('create_new_issues'):
-                    last_created_issue_number = create_issues(target, issues, last_created_issue_number)
+                    create_issues(target, issues, last_created_issue_number)
                 else:
-                    print target.importIssues(projectId, project.name + ' Assignees', issues)
+                    print(target.importIssues(projectId, project.name + ' Assignees', issues))
                 link_importer.addAvailableIssues(issues)
 
                 for issue in issues:
                     try:
                         target_issue = target.getIssue(issue.id)
-                    except youtrack.YouTrackException, e:
-                        print "Cannot get target issue"
-                        print e
+                    except youtrack.YouTrackException as e:
+                        print("Cannot get target issue")
+                        print(e)
                         continue
 
                     if params.get('sync_tags') and issue.tags:
@@ -420,9 +429,9 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                 except youtrack.YouTrackException:
                                     tag = re.sub(r'[\s-]', '_', tag)
                                     target.executeCommand(issue.id, 'tag ' + tag, disable_notifications=True)
-                        except youtrack.YouTrackException, e:
-                            print "Cannot sync tags for issue " + issue.id
-                            print e
+                        except youtrack.YouTrackException as e:
+                            print("Cannot sync tags for issue " + issue.id)
+                            print(e)
 
                     if params.get('add_new_comments'):
                         target_comments = dict()
@@ -438,9 +447,9 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                     group = c.permittedGroup
                                 try:
                                     target.executeCommand(issue.id, 'comment', c.text, group, c.author, disable_notifications=True)
-                                except youtrack.YouTrackException, e:
-                                    print 'Cannot add comment to issue '
-                                    print e
+                                except youtrack.YouTrackException as e:
+                                    print('Cannot add comment to issue')
+                                    print(e)
 
                     if params.get('sync_custom_fields'):
                         skip_fields = []
@@ -492,9 +501,9 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                 command = '%s %s' % (pcf.name, source_cf_value)
                                 try:
                                     target.executeCommand(issue.id, command, disable_notifications=True)
-                                except youtrack.YouTrackException, e:
+                                except youtrack.YouTrackException as e:
                                     if e.response.status == 412 and e.response.reason.find('Precondition Failed') > -1:
-                                        print 'WARN: Some workflow blocks following command: %s' % command
+                                        print('WARN: Some workflow blocks following command: %s' % command)
                                         failed_commands.append((issue.id, command))
 
                     if sync_workitems:
@@ -516,25 +525,25 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                                 if _id not in existing_workitems:
                                     new_workitems.append(w)
                             if new_workitems:
-                                print "Process workitems for issue [ " + issue.id + "]"
+                                print("Process workitems for issue [ " + issue.id + "]")
                                 try:
                                     target.importWorkItems(issue.id, new_workitems)
-                                except youtrack.YouTrackException, e:
+                                except youtrack.YouTrackException as e:
                                     if e.response.status == 404:
-                                        print "WARN: Target YouTrack doesn't support workitems importing."
-                                        print "WARN: Workitems won't be imported."
+                                        print("WARN: Target YouTrack doesn't support workitems importing.")
+                                        print("WARN: Workitems won't be imported.")
                                         sync_workitems = False
                                     else:
-                                        print "ERROR: Skipping workitems because of error:" + str(e)
+                                        print("ERROR: Skipping workitems because of error:" + str(e))
 
-                    print "Process attachments for issue [%s]" % issue.id
+                    print("Process attachments for issue [%s]" % issue.id)
                     existing_attachments = dict()
                     try:
                         for a in target.getAttachments(issue.id):
                             existing_attachments[a.name + '\n' + a.created] = a
-                    except youtrack.YouTrackException, e:
+                    except youtrack.YouTrackException as e:
                         if e.response.status == 404:
-                            print "Skip importing attachments because issue %s doesn't exist" % issue.id
+                            print("Skip importing attachments because issue %s doesn't exist" % issue.id)
                             continue
                         raise e
 
@@ -545,8 +554,8 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                         if a.name + '\n' + a.created in existing_attachments and not params.get('replace_attachments'):
                             a.name = utf8encode(a.name)
                             try:
-                                print "Skip attachment '%s' (created: %s) because it's already exists" \
-                                      % (utf8encode(a.name), utf8encode(a.created))
+                                print("Skip attachment '%s' (created: %s) because it's already exists"
+                                      % (utf8encode(a.name), utf8encode(a.created)))
                             except Exception:
                                 pass
                             continue
@@ -557,50 +566,50 @@ def youtrack2youtrack(source_url, source_login, source_password, target_url, tar
                     user_importer.importUsersRecursively(users)
 
                     for a in attachments:
-                        print "Transfer attachment of " + utf8encode(issue.id) + ": " + utf8encode(a.name)
+                        print("Transfer attachment of " + utf8encode(issue.id) + ": " + utf8encode(a.name))
                         # TODO: add authorLogin to workaround http://youtrack.jetbrains.net/issue/JT-6082
-                        #a.authorLogin = target_login
+                        # a.authorLogin = target_login
                         try:
                             target.createAttachmentFromAttachment(issue.id, a)
-                        except BaseException, e:
-                            print "Cant import attachment [ %s ]" % utf8encode(a.name)
-                            print repr(e)
+                        except BaseException as e:
+                            print("Cant import attachment [ %s ]" % utf8encode(a.name))
+                            print(repr(e))
                             continue
                         if params.get('replace_attachments'):
                             try:
                                 old_attachment = existing_attachments.get(a.name + '\n' + a.created)
                                 if old_attachment:
-                                    print 'Deleting old attachment'
+                                    print('Deleting old attachment')
                                     target.deleteAttachment(issue.id, old_attachment.id)
-                            except BaseException, e:
-                                print "Cannot delete attachment '%s' from issue %s" % (utf8encode(a.name), utf8encode(issue.id))
-                                print e
+                            except BaseException as e:
+                                print("Cannot delete attachment '%s' from issue %s" % (utf8encode(a.name), utf8encode(issue.id)))
+                                print(e)
 
-            except Exception, e:
+            except Exception as e:
                 print('Cant process issues from ' + str(start) + ' to ' + str(start + max))
                 traceback.print_exc()
                 raise e
 
             start += max
 
-    print "Import issue links"
+    print("Import issue links")
     link_importer.importCollectedLinks()
 
-    print "Trying to execute failed commands once again"
+    print("Trying to execute failed commands once again")
     for issue_id, command in failed_commands:
         try:
-            print 'Executing command on issue %s: %s' % (issue_id, command)
+            print('Executing command on issue %s: %s' % (issue_id, command))
             target.executeCommand(issue_id, command, disable_notifications=True)
-        except youtrack.YouTrackException, e:
-            print 'Failed to execute command for issue #%s: %s' % (issue_id, command)
-            print e
+        except youtrack.YouTrackException as e:
+            print('Failed to execute command for issue #%s: %s' % (issue_id, command))
+            print(e)
 
 
 def import_attachments_only(source_url, source_login, source_password,
                             target_url, target_login, target_password,
                             project_ids, params=None):
     if not project_ids:
-        print 'No projects to import. Exit...'
+        print('No projects to import. Exit...')
         return
     if params is None:
         params = {}
@@ -612,19 +621,19 @@ def import_attachments_only(source_url, source_login, source_password,
     for projectId in project_ids:
         while True:
             try:
-                print 'Get issues from %d to %d' % (start, start + max)
+                print('Get issues from %d to %d' % (start, start + max))
                 issues = source.getIssues(projectId, '', start, max)
                 if len(issues) <= 0:
                     break
                 for issue in issues:
-                    print 'Process attachments for issue %s' % issue.id
+                    print('Process attachments for issue %s' % issue.id)
                     existing_attachments = dict()
                     try:
                         for a in target.getAttachments(issue.id):
                             existing_attachments[a.name + '\n' + a.created] = a
-                    except youtrack.YouTrackException, e:
+                    except youtrack.YouTrackException as e:
                         if e.response.status == 404:
-                            print "Skip importing attachments because issue %s doesn't exist" % issue.id
+                            print("Skip importing attachments because issue %s doesn't exist" % issue.id)
                             continue
                         raise e
 
@@ -633,8 +642,8 @@ def import_attachments_only(source_url, source_login, source_password,
                     users = set([])
                     for a in issue.getAttachments():
                         if a.name + '\n' + a.created in existing_attachments and not params.get('replace_attachments'):
-                            print "Skip attachment '%s' (created: %s) because it's already exists" \
-                                  % (utf8encode(a.name), utf8encode(a.created))
+                            print("Skip attachment '%s' (created: %s) because it's already exists" %
+                                  (utf8encode(a.name), utf8encode(a.created)))
                             continue
                         attachments.append(a)
                         author = a.getAuthor()
@@ -643,24 +652,24 @@ def import_attachments_only(source_url, source_login, source_password,
                     user_importer.importUsersRecursively(users)
 
                     for a in attachments:
-                        print 'Transfer attachment of %s: %s' % (utf8encode(issue.id), utf8encode(a.name))
+                        print('Transfer attachment of %s: %s' % (utf8encode(issue.id), utf8encode(a.name)))
                         try:
                             target.createAttachmentFromAttachment(issue.id, a)
-                        except BaseException, e:
-                            print 'Cannot import attachment [ %s ]' % utf8encode(a.name)
-                            print repr(e)
+                        except BaseException as e:
+                            print('Cannot import attachment [ %s ]' % utf8encode(a.name))
+                            print(repr(e))
                             continue
                         if params.get('replace_attachments'):
                             try:
                                 old_attachment = existing_attachments.get(a.name + '\n' + a.created)
                                 if old_attachment:
-                                    print 'Deleting old attachment'
+                                    print('Deleting old attachment')
                                     target.deleteAttachment(issue.id, old_attachment.id)
-                            except BaseException, e:
-                                print "Cannot delete attachment '%s' from issue %s" % (utf8encode(a.name), utf8encode(issue.id))
-                                print e
-            except Exception, e:
-                print 'Cannot process issues from %d to %d' % (start, start + max)
+                            except BaseException as e:
+                                print("Cannot delete attachment '%s' from issue %s" % (utf8encode(a.name), utf8encode(issue.id)))
+                                print(e)
+            except Exception as e:
+                print('Cannot process issues from %d to %d' % (start, start + max))
                 traceback.print_exc()
                 raise e
             start += max

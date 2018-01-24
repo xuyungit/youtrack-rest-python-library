@@ -1,10 +1,10 @@
+#! /usr/bin/env python
+
 import sys
-#if not('/usr/lib/pymodules/python2.6' in sys.path) :
-#    sys.path.append('/usr/lib/pymodules/python2.6')
-#if not('/usr/lib/python2.6' in sys.path) :
-#    sys.path.append('/usr/lib/python2.6')
-#if not('/home/user/.PyCharm10' in sys.path) :
-#    sys.path.append('/home/user/.PyCharm10')
+
+if sys.version_info >= (3, 0):
+    print("\nThe script doesn't support python 3. Please use python 2.7+\n")
+    sys.exit(1)
 
 from fbugz.fbSOAPClient import FBClient
 from youtrack.connection import Connection
@@ -14,18 +14,20 @@ import fbugz
 from youtrack import YouTrackException
 from youtrack.importHelper import *
 
+
 def main() :
     try :
         target_url, target_login, target_password, source_url, source_login, source_password, num = sys.argv[1:8]
         max_issue_id = int(num)
     except BaseException:
-        print "Usage : "
-        print "fb2youtrack.py target_url target_login target_password source_url source_login source_password max_issue_id project_names"
+        print("Usage : ")
+        print("fb2youtrack.py target_url target_login target_password source_url source_login source_password max_issue_id project_names")
         sys.exit()
     project_names = fbugz.PROJECTS_TO_IMPORT
     if not source_url.endswith("/") :
         source_url += "/"
     fb2youtrack(target_url, target_login, target_password, source_url, source_login, source_password, project_names, max_issue_id)
+
 
 def _to_yt_user(fb_user) :
     user = User()
@@ -36,12 +38,14 @@ def _to_yt_user(fb_user) :
     user.group = fb_user.user_type
     return user
 
+
 def _to_yt_subsystem(bundle, area) :
     subsystem = bundle.createElement(area.name)
     assignee = area.person_owner
     if assignee is not None:
         subsystem.owner = assignee.replace(' ', "_")
     return subsystem
+
 
 def _to_yt_version(bundle, milestone) :
     version = bundle.createElement(milestone.name)
@@ -50,12 +54,14 @@ def _to_yt_version(bundle, milestone) :
     version.releaseDate = milestone.release_date
     return version
 
+
 def _to_yt_comment(fb_comment) :
     comment = Comment()
     comment.author = fb_comment.author.replace(" ", "_")
     comment.text = fb_comment.text
     comment.created = fb_comment.date
     return comment
+
 
 def _to_yt_issue(fb_issue, value_sets) :
     issue = Issue()
@@ -93,21 +99,25 @@ def add_field_values_to_bundle(connection, bundle, field_values):
         if value.name in missing_names:
             connection.addValueToBundle(bundle, value)
 
+
 def _do_import_users(target, users_to_import):
     target.importUsers(users_to_import)
     for u in users_to_import:
         target.setUserGroup(u.login, u.group)
+
 
 def get_yt_name_from_fb_field_name(fb_name):
     if fb_name in fbugz.CF_NAMES:
         return fbugz.CF_NAMES[fb_name]
     return fb_name.decode('utf-8')
 
+
 def create_bundle_with_values(connection, bundle_type, bundle_name, values, value_converter):
     bundle = create_bundle_safe(connection, bundle_name, bundle_type)
     values = set(values)
     values_to_add = [value_converter(bundle, value) for value in values if value is not None]
     add_field_values_to_bundle(connection, bundle, values_to_add)
+
 
 def add_values_to_field(connection, field_name, project_id, values, create_value):
     field = connection.getProjectCustomField(project_id, field_name)
@@ -124,13 +134,13 @@ def to_yt_status(bundle, fb_status):
     status.is_resolved = str(resolved)
     return status
 
+
 def to_yt_field_value(field_name, value):
     if field_name not in fbugz.CF_VALUES:
         return value
     if value not in fbugz.CF_VALUES[field_name]:
         return value
     return fbugz.CF_VALUES[field_name][value]
-
 
 
 def fb2youtrack(target_url, target_login, target_password, source_url, source_login, source_password, project_names, max_issue_id) :
@@ -140,7 +150,7 @@ def fb2youtrack(target_url, target_login, target_password, source_url, source_lo
     accessible_projects = source.list_project_names()
     for p_name in project_names :
         if not(p_name in  accessible_projects.keys()) :
-            print 'Unknown project names. Exiting...'
+            print('Unknown project names. Exiting...')
             sys.exit()
 
 #    for p_name in accessible_projects :
@@ -190,44 +200,43 @@ def fb2youtrack(target_url, target_login, target_password, source_url, source_lo
         name = get_yt_name_from_fb_field_name(name)
         create_custom_field(target, fbugz.CF_TYPES[name], name, False)
 
-    print 'Importing users'
+    print('Importing users')
     for name in ['Normal', 'Deleted', 'Community', 'Virtual'] :
         group = Group()
         group.name = name
         try :
             target.createGroup(group)
-            print 'Group with name [ %s ] successfully created' % name
+            print('Group with name [ %s ] successfully created' % name)
         except:
-            print "Can't create group with name [ %s ] (maybe because it already exists)" % name
-
+            print("Can't create group with name [ %s ] (maybe because it already exists)" % name)
 
     users_to_import = []
     max = 100
     for user in source.get_users() :
         yt_user = _to_yt_user(user)
-        print 'Importing user [ %s ]' % yt_user.login
+        print('Importing user [ %s ]' % yt_user.login)
         users_to_import.append(yt_user)
         if len(users_to_import) >= max:
             _do_import_users(target, users_to_import)
             users_to_import = []
     _do_import_users(target, users_to_import)
-    print 'Importing users finished'
+    print('Importing users finished')
 
     # to handle linked issues
     try :
         target.createIssueLinkTypeDetailed('parent-child', 'child of', 'parent of', True)
     except YouTrackException:
-        print "Can't create issue link type [ parent-child ] (maybe because it already exists)"
+        print("Can't create issue link type [ parent-child ] (maybe because it already exists)")
     links_to_import = []
 
     for project_name in project_names :
         value_sets = dict([])
 
         project_id = accessible_projects[project_name]
-        print 'Importing project [ %s ]' % project_name
+        print('Importing project [ %s ]' % project_name)
         target.createProjectDetailed(project_id, project_name.encode('utf-8'), 'no description', 'root')
 
-        print 'Creating custom fields in project [ %s ]' % project_name
+        print('Creating custom fields in project [ %s ]' % project_name)
 
         for cf_name in common_fields:
             bundle_name = common_fields[cf_name]
@@ -241,7 +250,7 @@ def fb2youtrack(target_url, target_login, target_password, source_url, source_lo
             try:
                 target.createProjectCustomFieldDetailed(project_id, cf_name, 'No ' + cf_name.lower())
             except YouTrackException:
-                print "Can't create custom field with name [%s]" % cf_name
+                print("Can't create custom field with name [%s]" % cf_name)
         cf_name = get_yt_name_from_fb_field_name('fix_for')
         milestones = source.get_milestones(project_id)
         value_sets["fix_for"] = []
@@ -260,7 +269,7 @@ def fb2youtrack(target_url, target_login, target_password, source_url, source_lo
         add_values_to_field(target, cf_name, project_id, areas,
                             lambda bundle, value: _to_yt_subsystem(bundle, value))
 
-        print 'Importing issues for project [ %s ]' % project_name
+        print('Importing issues for project [ %s ]' % project_name)
         start = 0
         issues_to_import = []
         # create dictionary with child : parent pairs
@@ -286,11 +295,11 @@ def fb2youtrack(target_url, target_login, target_password, source_url, source_lo
                     links_to_import.append(link)
             issues_to_import = []
             start += 30
-        print 'Importing issues for project [ %s ] finished' % project_name
+        print('Importing issues for project [ %s ] finished' % project_name)
 
-    print 'Importing issue links'
-    print target.importLinks(links_to_import)
-    print 'Importing issue links finished'
+    print('Importing issue links')
+    print(target.importLinks(links_to_import))
+    print('Importing issue links finished')
 
 if __name__ == '__main__':
     main()

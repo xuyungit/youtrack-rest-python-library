@@ -1,36 +1,36 @@
 #! /usr/bin/env python
 
-from string import capitalize
+import sys
+
+if sys.version_info >= (3, 0):
+    print("\nThe script doesn't support python 3. Please use python 2.7+\n")
+    sys.exit(1)
+
 import urllib
 from youtrack.connection import Connection
 from tracLib.client import Client
 import youtrack
 import re
-import sys
 import tracLib
 import tracLib.defaultTrac
 import youtrack.connection
 from youtrack.importHelper import *
 
+
 def main():
     try:
         target_url, target_login, target_password, project_ID, project_name, env_path = sys.argv[1:]
-#        target_url = "http://localhost:8081"
-#        target_login = "root"
-#        target_password = "root"
-#        project_ID = "jj"
-#        project_name = "jjj"
-#        env_path = "/home/user/trac/fix-date/"
-        print "url                  : " + target_url
-        print "login                : " + target_login
-        print "pass                 : " + target_password
-        print "id                   : " + project_ID
-        print "name                 : " + project_name
-        print "trac environment at  : " + env_path
-    except BaseException, e:
-        print e
+        print("url                  : " + target_url)
+        print("login                : " + target_login)
+        print("pass                 : " + target_password)
+        print("id                   : " + project_ID)
+        print("name                 : " + project_name)
+        print("trac environment at  : " + env_path)
+    except BaseException as e:
+        print(e)
         return
     trac2youtrack(target_url, target_login, target_password, project_ID, project_name, env_path)
+
 
 def to_youtrack_user(trac_user) :
     """
@@ -79,6 +79,7 @@ def to_non_authorised_youtrack_user(user_name):
             return user
     return None
 
+
 def process_non_authorised_user(connection, registered_users, user_name) :
     """
     This method tries to create new YT user for trac non-authorised user.
@@ -103,6 +104,7 @@ def process_non_authorised_user(connection, registered_users, user_name) :
             return yt_user.login, registered_users
     else:
         return None, registered_users
+
 
 def to_youtrack_subsystem(trac_component, yt_bundle):
     """
@@ -137,11 +139,11 @@ def to_youtrack_issue(project_ID, trac_issue, check_box_fields):
         issue.reporterName = "guest"
     else:
         issue.reporterName = trac_issue.reporter
-    #watchers
+    # watchers
     issue.watcherName = set([])
     for cc in trac_issue.cc:
         issue.watcherName.add(cc)
-    #adding custom fields to issue
+    # adding custom fields to issue
     custom_fields = trac_issue.custom_fields
     for cf in custom_fields.keys():
         if cf in check_box_fields:
@@ -187,6 +189,7 @@ def to_youtrack_version(trac_version, yt_bundle):
     version.description = trac_version.description
     version.releaseDate = trac_version.time
     return version
+
 
 def to_youtrack_comment(project_ID, trac_comment):
     """
@@ -245,6 +248,7 @@ def trac_values_to_youtrack_values(field_name, value_names):
             field_values.append(name)
     return field_values
 
+
 def trac_field_name_to_yt_field_name(trac_field_name):
     if trac_field_name in tracLib.FIELD_NAMES:
         return tracLib.FIELD_NAMES[trac_field_name]
@@ -266,6 +270,7 @@ def create_yt_custom_field(connection, project_Id, field_name, value_names):
     field_name = trac_field_name_to_yt_field_name(field_name)
     process_custom_field(connection, project_Id, tracLib.FIELD_TYPES[field_name], field_name, field_values)
 
+
 def to_youtrack_state(trac_resolution, yt_bundle) :
     """
     Creates YT state in yt_bundle with trac_resolution name.
@@ -281,6 +286,7 @@ def to_youtrack_state(trac_resolution, yt_bundle) :
     state.isResolved = True
     return state
 
+
 def to_youtrack_workitem(trac_workitem):
     workitem = youtrack.WorkItem()
     workitem.date = str(trac_workitem.time)
@@ -288,6 +294,7 @@ def to_youtrack_workitem(trac_workitem):
     workitem.authorLogin = trac_workitem.author
     workitem.description = trac_workitem.comment
     return workitem
+
 
 def create_yt_bundle_custom_field(target, project_id, field_name, trac_field_values, trac_field_to_youtrack_field):
     """
@@ -322,28 +329,29 @@ def trac2youtrack(target_url, target_login, target_password, project_ID, project
     # creating connection to youtrack to import issues in
     target = Connection(target_url, target_login, target_password)
 
-    #create project
-    print "Creating project[%s]" % project_name
-    try :
+    # create project
+    print("Creating project[%s]" % project_name)
+    try:
         target.getProject(project_ID)
     except youtrack.YouTrackException:
         target.createProjectDetailed(project_ID, project_name, client.get_project_description(), target_login)
 
-    #importing users
+    # importing users
     trac_users = client.get_users()
-    print "Importing users"
+    print("Importing users")
     yt_users = list([])
+
     # converting trac users to yt users
     registered_users = set([])
     for user in trac_users :
-        print "Processing user [ %s ]" % user.name
+        print("Processing user [ %s ]" % user.name)
         registered_users.add(user.name)
         yt_users.append(to_youtrack_user(user))
         # adding users to yt project
     target.importUsers(yt_users)
-    print "Importing users finished"
+    print("Importing users finished")
 
-    print "Creating project custom fields"
+    print("Creating project custom fields")
 
     create_yt_custom_field(target, project_ID, "Priority", client.get_issue_priorities())
 
@@ -372,8 +380,7 @@ def trac2youtrack(target_url, target_login, target_password, project_ID, project
     trac_custom_fields = client.get_custom_fields_declared()
     check_box_fields = dict([])
     for elem in trac_custom_fields:
-        print "Processing custom field [ %s ]" % elem.name
-        type_name = None
+        print("Processing custom field [ %s ]" % elem.name)
         if elem.type == "checkbox":
             if len(elem.label) > 0:
                 opt = elem.label
@@ -397,15 +404,15 @@ def trac2youtrack(target_url, target_login, target_password, project_ID, project
             field_type = tracLib.FIELD_TYPES[field_name]
 
         process_custom_field(target, project_ID, field_type, field_name, trac_values_to_youtrack_values(field_name, values))
-        print "Creating project custom fields finished"
+        print("Creating project custom fields finished")
 
-    print "Importing issues"
+    print("Importing issues")
     trac_issues = client.get_issues()
     yt_issues = list([])
     counter = 0
     max = 100
     for issue in trac_issues:
-        print "Processing issue [ %s ]" % (str(issue.id))
+        print("Processing issue [ %s ]" % (str(issue.id)))
         counter += 1
         if not (issue.reporter in registered_users):
             yt_user, registered_users = process_non_authorised_user(target, registered_users, issue.reporter)
@@ -428,53 +435,51 @@ def trac2youtrack(target_url, target_login, target_password, project_ID, project
         yt_issues.append(to_youtrack_issue(project_ID, issue, check_box_fields))
         if counter == max:
             counter = 0
-            print target.importIssues(project_ID, project_name + ' Assignees', yt_issues)
+            print(target.importIssues(project_ID, project_name + ' Assignees', yt_issues))
             yt_issues = list([])
-    print target.importIssues(project_ID, project_name + ' Assignees', yt_issues)
-    print 'Importing issues finished'
-    #importing tags
-    print "Importing keywords"
+    print(target.importIssues(project_ID, project_name + ' Assignees', yt_issues))
+    print('Importing issues finished')
+
+    # importing tags
+    print("Importing keywords")
     for issue in trac_issues:
-        print "Importing tags from issue [ %s ]" % (str(issue.id))
+        print("Importing tags from issue [ %s ]" % (str(issue.id)))
         tags = issue.keywords
         for t in tags:
             target.executeCommand(str(project_ID) + "-" + str(issue.id), "tag " + t.encode('utf-8'))
-    print "Importing keywords finished"
+    print("Importing keywords finished")
 
-    print "Importing attachments"
+    print("Importing attachments")
     for issue in trac_issues:
-        print "Processing issue [ %s ]" % (str(issue.id))
+        print("Processing issue [ %s ]" % (str(issue.id)))
         issue_attach = issue.attachment
         for attach in issue_attach:
-            print "Processing attachment [ %s ]" % attach.filename.encode('utf-8')
+            print("Processing attachment [ %s ]" % attach.filename.encode('utf-8'))
             if not (attach.author_name in registered_users):
                 yt_user, registered_users = process_non_authorised_user(target, registered_users, attach.author_name)
-                if yt_user is None :
+                if yt_user is None:
                     attach.author_name = "guest"
                 else:
                     attach.author_name = yt_user
             content = open(urllib.quote(attach.filename.encode('utf-8')))
             target.createAttachment(str(project_ID) + "-" + str(issue.id), attach.name, content, attach.author_name,
                                     created=attach.time)
-    print "Importing attachments finished"
+    print("Importing attachments finished")
 
-    print "Importing workitems"
+    print("Importing workitems")
     tt_enabled = False
     for issue in trac_issues:
         if issue.workitems:
             if not tt_enabled:
                 tt_settings = target.getProjectTimeTrackingSettings(str(project_ID))
                 if not tt_settings.Enabled:
-                    print "Enabling TimeTracking for the prject"
+                    print("Enabling TimeTracking for the project")
                     target.setProjectTimeTrackingSettings(str(project_ID), enabled=True)
                 tt_enabled = True
-            print "Processing issue [ %s ]" % (str(issue.id))
+            print("Processing issue [ %s ]" % (str(issue.id)))
             workitems = [to_youtrack_workitem(w) for w in issue.workitems]
             target.importWorkItems(str(project_ID) + "-" + str(issue.id), workitems)
-    print "Importing workitems finished"
+    print("Importing workitems finished")
 
 if __name__ == "__main__":
     main()
-
-    
-    

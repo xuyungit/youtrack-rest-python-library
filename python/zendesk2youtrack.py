@@ -1,4 +1,11 @@
+#! /usr/bin/env python
+
 import sys
+
+if sys.version_info >= (3, 0):
+    print("\nThe script doesn't support python 3. Please use python 2.7+\n")
+    sys.exit(1)
+
 from youtrack.connection import Connection
 from youtrackImporter import YouTrackImporter, YouTrackImportConfig
 from youtrackImporter import AUTO_ATTACHED, NAME, NUMBER_IN_PROJECT, TYPE, POLICY
@@ -11,6 +18,7 @@ import urllib2
 
 
 __author__ = 'user'
+
 
 def main():
     source_url, source_login, source_password, target_url, target_login, target_password, project_id = sys.argv[1:8]
@@ -129,6 +137,7 @@ class ZendeskYouTrackImportConfig(YouTrackImportConfig):
         types = {u"text": u"string", u"checkbox": u"enum[*]", u"date": u"date", u"integer": u"integer",
                  u"decimal": u"float", u"regexp": u"string", u"tagger": u"enum[1]"}
         return types.get(type)
+
 
 class ZdAttachment():
     def __init__(self, name, created, author_login, url):

@@ -1,5 +1,11 @@
 #! /usr/bin/env python
 
+import sys
+
+if sys.version_info >= (3, 0):
+    print("\nThe script doesn't support python 3. Please use python 2.7+\n")
+    sys.exit(1)
+
 import calendar
 import youtrack
 from youtrack.connection import Connection
@@ -8,7 +14,6 @@ from youtrack import *
 from StringIO import StringIO
 import bugzilla.defaultBzMapping
 import bugzilla
-import sys
 import os
 from youtrack.importHelper import create_custom_field, process_custom_field
 
@@ -16,16 +21,8 @@ from youtrack.importHelper import create_custom_field, process_custom_field
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 0)
 
+
 def main():
-#    target_url = "http://localhost:8081"
-#    target_login = "root"
-#    target_pass = "root"
-#    bz_db = "bugs"
-#    bz_host = "localhost"
-#    bz_port = 3306
-#    bz_login = "root"
-#    bz_pass = "root"
-#    bz_product_names = ["Orpheus", "License Manager"]
     try:
         target_url, target_login, target_pass, bz_db, bz_host, bz_port, bz_login, bz_pass = sys.argv[1:9]
         bz_product_names = sys.argv[9:]
@@ -190,7 +187,6 @@ def to_yt_issue(bz_issue, project_id, target):
                 resultState = prestate[bzRes]
             else:
                 resultState = prestate["*"]
-        #print "state %s for %s, %s" % (resultState, bzStatus, bzRes)
         issue["State"] = resultState
 
     return issue
@@ -275,26 +271,26 @@ def bugzilla2youtrack(target_url, target_login, target_pass, bz_db, bz_host, bz_
             sys.exit()
         bz_product_names = client.get_product_names()
 
-    print "bz_product_names :   " + repr(bz_product_names)
+    print("bz_product_names :   " + repr(bz_product_names))
 
     # connecting to yt
     target = Connection(target_url, target_login, target_pass)
 
-    print "Creating issue link types"
+    print("Creating issue link types")
     link_types = client.get_issue_link_types()
     for link in link_types:
-        print "Processing link type [ %s ]" % link.name
+        print("Processing link type [ %s ]" % link.name)
         try:
             target.createIssueLinkType(to_yt_issue_link_type(link))
         except YouTrackException:
-            print "Can't create link type [ %s ] (maybe because it already exists)" % link.name
-    print "Creating issue link types finished"
+            print("Can't create link type [ %s ] (maybe because it already exists)" % link.name)
+    print("Creating issue link types finished")
 
-    print "Creating custom fields"
+    print("Creating custom fields")
     custom_fields = client.get_custom_fields()
     for cf in custom_fields:
         create_yt_custom_field(cf, target)
-    print "Creating custom fields finished"
+    print("Creating custom fields finished")
 
     for key in bugzilla.FIELD_TYPES:
         if key not in youtrack.EXISTING_FIELDS:
@@ -305,22 +301,22 @@ def bugzilla2youtrack(target_url, target_login, target_pass, bz_db, bz_host, bz_
     for name in bz_product_names:
         product_id = str(client.get_product_id_by_name(name))
         bz_product_ids.append(product_id)
-        print "Creating project [ %s ] with name [ %s ]" % (product_id, name)
+        print("Creating project [ %s ] with name [ %s ]" % (product_id, name))
         try:
             target.getProject(str(product_id))
         except YouTrackException:
             target.createProjectDetailed(str(product_id), name, client.get_project_description(product_id),
                 target_login)
 
-        print "Importing components for project [ %s ]" % product_id
+        print("Importing components for project [ %s ]" % product_id)
         process_components(client.get_components(product_id), product_id, target)
-        print "Importing components finished for project [ %s ]" % product_id
+        print("Importing components finished for project [ %s ]" % product_id)
 
-        print "Importing versions for project [ %s ]" % product_id
+        print("Importing versions for project [ %s ]" % product_id)
         process_versions(client.get_versions(product_id), product_id, target)
-        print "Importing versions finished for project [ %s ] finished" % product_id
+        print("Importing versions finished for project [ %s ] finished" % product_id)
 
-        print "Importing issues to project [ %s ]" % product_id
+        print("Importing issues to project [ %s ]" % product_id)
         max_count = 100
         count = 0
         from_id = 0
@@ -336,42 +332,42 @@ def bugzilla2youtrack(target_url, target_login, target_pass, bz_db, bz_host, bz_
             for issue in batch:
                 tags = issue["keywords"] | issue["flags"]
                 for t in tags:
-                    print "Processing tag [ %s ]" % t.encode('utf8')
+                    print("Processing tag [ %s ]" % t.encode('utf8'))
                     target.executeCommand(str(product_id) + "-" + str(issue[get_number_in_project_field_name()]),
                         "tag " + t.encode('utf8'))
             for issue in batch:
                 for attach in issue["attachments"]:
-                    print "Processing attachment [ %s ]" % (attach.name.encode('utf8'))
+                    print("Processing attachment [ %s ]" % (attach.name.encode('utf8')))
                     content = StringIO(attach.content)
                     target.createAttachment(str(product_id) + "-" + str(issue[get_number_in_project_field_name()]),
                         attach.name, content, attach.reporter.login
                         , created=str(int(attach.created) * 1000))
-        print "Importing issues to project [ %s ] finished" % product_id
+        print("Importing issues to project [ %s ] finished" % product_id)
 
     # todo add pagination to links
-    print "Importing issue links"
+    print("Importing issue links")
     cf_links = client.get_issue_links()
     duplicate_links = client.get_duplicate_links()
     if len(duplicate_links):
         try:
             target.createIssueLinkTypeDetailed("Duplicate", "duplicates", "is duplicated by", True)
         except YouTrackException:
-            print "Can't create link type [ Duplicate ] (maybe because it already exists)"
+            print("Can't create link type [ Duplicate ] (maybe because it already exists)")
     depend_links = client.get_dependencies_link()
     if len(depend_links):
         try:
             target.createIssueLinkTypeDetailed("Depend", "depends on", "is required for", True)
         except YouTrackException:
-            print "Can't create link type [ Depend ] (maybe because it already exists)"
+            print("Can't create link type [ Depend ] (maybe because it already exists)")
     links = cf_links | duplicate_links | depend_links
 
     links_to_import = list([])
     for link in links:
-        print "Processing link %s for issue%s" % (link.name, link.source)
+        print("Processing link %s for issue%s" % (link.name, link.source))
         if (str(link.target_product_id) in bz_product_ids) and (str(link.source_product_id) in bz_product_ids):
             links_to_import.append(to_yt_issue_link(link))
-    print target.importLinks(links_to_import)
-    print "Importing issue links finished"
+    print(target.importLinks(links_to_import))
+    print("Importing issue links finished")
 
 
 if __name__ == "__main__":

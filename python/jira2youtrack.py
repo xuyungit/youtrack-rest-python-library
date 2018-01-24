@@ -6,10 +6,15 @@
 # *  with the native implementation.                       *
 # **********************************************************
 
+import sys
+
+if sys.version_info >= (3, 0):
+    print("\nThe script doesn't support python 3. Please use python 2.7+\n")
+    sys.exit(1)
+
 import calendar
 import functools
 import os
-import sys
 import re
 import getopt
 import datetime
@@ -28,7 +33,7 @@ _debug = os.environ.get('DEBUG')
 
 
 def usage():
-    print """
+    print("""
 **********************************************************
 *  Since YouTrack 6.5 there is build-in JIRA import.     *
 *  Please use this script only in case you have problems *
@@ -66,7 +71,7 @@ Options:
          Mapping format is JIRA_FIELD_NAME:YT_FIELD_NAME@FIELD_TYPE
     -M,  Comma-separated list of field value mappings.
          Mapping format is YT_FIELD_NAME:JIRA_FIELD_VALUE=YT_FIELD_VALUE[;...]
-""" % os.path.basename(sys.argv[0])
+""" % os.path.basename(sys.argv[0]))
 
 # Primary import options
 FI_ISSUES = 0x01
@@ -123,12 +128,12 @@ def main():
                         if field_name not in value_mappings:
                             value_mappings[field_name] = dict()
                         value_mappings[field_name][jira_value.lower()] = yt_value
-    except getopt.GetoptError, e:
-        print e
+    except getopt.GetoptError as e:
+        print(e)
         usage()
         sys.exit(1)
     if len(args) < 7:
-        print 'Not enough arguments'
+        print('Not enough arguments')
         usage()
         sys.exit(1)
 
@@ -213,7 +218,7 @@ def to_yt_issue(target, issue, project_id,
                     create_value(target, value, field_name, field_type, project_id)
                     yt_issue[field_name] = get_value_presentation(field_type, value)
         elif _debug:
-            print 'DEBUG: unclassified field', field_name
+            print('DEBUG: unclassified field', field_name)
     return yt_issue
 
 
@@ -222,8 +227,8 @@ def ignore_youtrack_exceptions(f):
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except YouTrackException, e:
-            print e
+        except YouTrackException as e:
+            print(e)
     return wrapper
 
 
@@ -306,9 +311,9 @@ def process_links(target, issue, yt_links):
 def create_user(target, value):
     try:
         target.createUserDetailed(value['name'].replace(' ', '_'), value['displayName'], value[u'name'], 'fake_jabber')
-    except YouTrackException, e:
+    except YouTrackException as e:
         print(str(e))
-    except KeyError, e:
+    except KeyError as e:
         print(str(e))
 
 
@@ -325,9 +330,9 @@ def create_value(target, value, field_name, field_type, project_id):
             try:
                 target.createProjectCustomFieldDetailed(
                     project_id, field_name, "No " + field_name)
-            except YouTrackException, e:
+            except YouTrackException as e:
                 if e.response.status == 409:
-                    print e
+                    print(e)
                 else:
                     raise e
         else:
@@ -337,9 +342,9 @@ def create_value(target, value, field_name, field_type, project_id):
                 target.createProjectCustomFieldDetailed(
                     project_id, field_name, "No " + field_name,
                     {'bundle': bundle_name})
-            except YouTrackException, e:
+            except YouTrackException as e:
                 if e.response.status == 409:
-                    print e
+                    print(e)
                 else:
                     raise e
     if field_type in ['string', 'date', 'integer', 'period']:
@@ -408,12 +413,12 @@ def process_attachments(source, target, issue, replace=False):
         if isinstance(attachment_name, unicode):
             attachment_name = attachment_name.encode('utf-8')
         try:
-            print 'Creating attachment %s for issue %s' % \
-                  (attachment_name, issue_id)
+            print('Creating attachment %s for issue %s' % \
+                  (attachment_name, issue_id))
             target.createAttachmentFromAttachment(issue_id, attachment)
-        except BaseException, e:
-            print 'Cannot create attachment %s' % attachment_name
-            print e
+        except BaseException as e:
+            print('Cannot create attachment %s' % attachment_name)
+            print(e)
             continue
         if not replace:
             continue
@@ -421,12 +426,12 @@ def process_attachments(source, target, issue, replace=False):
         if not old_attachment:
             continue
         try:
-            print 'Deleting old version of attachment %s for issue %s' % \
-                  (attachment_name, issue_id)
+            print('Deleting old version of attachment %s for issue %s' % \
+                  (attachment_name, issue_id))
             target.deleteAttachment(issue_id, old_attachment.id)
-        except BaseException, e:
-            print 'Cannot delete old version of attachment %s' % attachment_name
-            print e
+        except BaseException as e:
+            print('Cannot delete old version of attachment %s' % attachment_name)
+            print(e)
 
 
 @ignore_youtrack_exceptions
@@ -450,10 +455,10 @@ def process_worklog(source, target, issue):
 def jira2youtrack(source_url, source_login, source_password,
                   target_url, target_login, target_password,
                   projects, flags, field_mappings, value_mappings):
-    print 'source_url   : ' + source_url
-    print 'source_login : ' + source_login
-    print 'target_url   : ' + target_url
-    print 'target_login : ' + target_login
+    print('source_url   : ' + source_url)
+    print('source_login : ' + source_login)
+    print('target_url   : ' + target_url)
+    print('target_login : ' + target_login)
 
     source = JiraClient(source_url, source_login, source_password)
     target = Connection(target_url, target_login, target_password)
@@ -474,7 +479,7 @@ def jira2youtrack(source_url, source_login, source_password,
                 _end = end
             if start > _end:
                 break
-            print 'Processing issues: %s [%d .. %d]' % (project_id, start, _end)
+            print('Processing issues: %s [%d .. %d]' % (project_id, start, _end))
             try:
                 jira_issues = source.get_issues(project_id, start, _end)
                 start += chunk_size
@@ -493,8 +498,8 @@ def jira2youtrack(source_url, source_login, source_password,
                         continue
                     target.importIssues(
                         project_id, '%s assignees' % project_id, issues2import)
-            except YouTrackException, e:
-                print e
+            except YouTrackException as e:
+                print(e)
                 continue
             for issue in jira_issues:
                 if flags & FI_LINKS:
