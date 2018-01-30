@@ -793,8 +793,10 @@ class Connection(object):
             if isinstance(params[p], unicode):
                 params[p] = params[p].encode('utf-8')
 
-        response, content = self._req('POST', '/issue/' + issueId + "/execute?" +
-                                              urllib.urlencode(params), body='')
+        self._req('POST',
+                  '/issue/' + issueId + "/execute",
+                  body=urllib.urlencode(params),
+                  content_type='application/x-www-form-urlencoded')
 
         return "Command executed"
 
