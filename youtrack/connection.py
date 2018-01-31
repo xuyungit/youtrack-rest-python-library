@@ -1,19 +1,21 @@
 import calendar
-import time
-from datetime import datetime
-import httplib2
-from xml.dom import minidom
-import sys
-import youtrack
-from xml.dom import Node
-import urllib2
-import urllib
-from xml.sax.saxutils import escape, quoteattr
-import json
-import urllib2_file
-import tempfile
 import functools
+import httplib2
+import json
 import re
+import sys
+import tempfile
+import time
+import urllib
+import urllib2
+import urllib2_file_mod
+from xml.dom import Node
+from xml.dom import minidom
+from xml.sax.saxutils import escape, quoteattr
+
+from datetime import datetime
+
+import youtrack
 
 
 def urlquote(s):

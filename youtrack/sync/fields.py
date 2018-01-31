@@ -1,7 +1,8 @@
-import time
 import sys
-from sync.states import get_command_for_state_change, get_event
+import time
+
 from youtrack import YouTrackException
+from youtrack.sync.states import get_event
 
 PRIORITY_MAPPING= {'0':'Show-stopper', '1':'Critical', '2':'Major', '3':'Normal', '4':'Minor'}
 

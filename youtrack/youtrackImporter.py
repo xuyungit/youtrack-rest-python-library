@@ -1,7 +1,8 @@
-from youtrack import YouTrackException, Issue
-import youtrack
-from youtrack.importHelper import create_custom_field
 import itertools
+
+import youtrack
+from youtrack import YouTrackException, Issue
+from youtrack.importHelper import create_custom_field
 
 __author__ = 'user'
 

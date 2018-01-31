@@ -85,10 +85,18 @@ class YouTrackObject(object):
                 if isinstance(name, unicode):
                     name = name.encode('utf-8')
                 values = c.getElementsByTagName('value')
+                # TODO: The code is needed to work correctly with localized YT
+                # value_ids = c.getElementsByTagName('valueId')
                 if (values is not None) and len(values):
                     if values.length == 1:
+                        # if value_ids:
+                        #    value = self._text(value_ids.item(0))
+                        # else:
                         value = self._text(values.item(0))
                     elif values.length > 1:
+                        # if value_ids:
+                        #    value = [self._text(value) for value in value_ids]
+                        # else:
                         value = [self._text(value) for value in values]
                 elif c.hasAttribute('value'):
                     value = c.getAttribute('value')
@@ -594,7 +602,7 @@ class Build(BundleElement):
         BundleElement.__init__(self, "build", xml, youtrack)
 
     def _update_specific_attributes(self, xml):
-        self.assembleDate = xml.getAttribute('assembleDate')
+        self.assembleDate = xml.getAttribute('assembleName')
 
 
 class OwnedFieldBundle(Bundle):

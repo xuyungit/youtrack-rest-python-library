@@ -1,6 +1,7 @@
 from sync.executing import SafeCommandExecutor
-from sync.issues import AsymmetricIssueMerger
 from sync.links import LinkSynchronizer
+
+from youtrack.sync.issues import AsymmetricIssueMerger
 
 query_time_format = '%m-%dT%H:%M:%S'
 batch = 100

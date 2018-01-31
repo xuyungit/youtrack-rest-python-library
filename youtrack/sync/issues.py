@@ -1,6 +1,7 @@
-import time
-from sync.comments import CommentSynchronizer
 from sync.fields import AsymmetricFieldsSynchronizer
+
+from youtrack.sync.comments import CommentSynchronizer
+
 
 class AsymmetricIssueMerger(object):
     def __init__(self, master, slave, master_executor, slave_executor, issue_binder, link_synchronizer, fields_to_sync, last_run, current_run, project_id):
