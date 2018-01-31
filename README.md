@@ -1,7 +1,7 @@
 [![official JetBrains project](http://jb.gg/badges/official-flat-square.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 
 # YouTrack REST API Client Library for Python
-This is a Python client library that you can use to access the REST API for JetBrains YouTrack. Previously, this repository also included command-line tools for importing issues from other issue trackers. We have created a separate repository to store scripts that use this library.
+This is a Python client library that you can use to access the REST API for JetBrains YouTrack. Previously, this repository also included command-line tools for importing issues from other issue trackers. We have created a [separate repository](https://github.com/JetBrains/youtrack-python-scripts) to store scripts that use this library.
 
 The primary purpose of this library is to support migration to YouTrack, but you are welcome to build integrations with it as well. If you choose to work with this library, please be mindful of the following limitations:
 - We don't provide any documentation for this library. You can either learn through trial and error or by dissecting the import scripts in the linked repository. 
