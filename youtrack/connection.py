@@ -91,6 +91,15 @@ class Connection(object):
                         'Cache-Control': 'no-cache'}
         self._last_credentials = (login, password)
 
+    @staticmethod
+    def __get_illegal_xml_chars_re():
+        _illegal_unichrs = [(0x00, 0x08), (0x0B, 0x0C), (0x0E, 0x1F),
+                            (0x7F, 0x84), (0x86, 0x9F), (0xFDD0, 0xFDDF),
+                            (0xFFFE, 0xFFFF)]
+        _illegal_ranges = ["%s-%s" % (unichr(low), unichr(high))
+                           for (low, high) in _illegal_unichrs]
+        return re.compile(u'[%s]' % u''.join(_illegal_ranges))
+
     @relogin_on_401
     def _req(self, method, url, body=None, ignoreStatus=None, content_type=None):
         headers = self.headers
@@ -98,23 +107,37 @@ class Connection(object):
             headers = headers.copy()
             if content_type is None:
                 content_type = 'application/xml; charset=UTF-8'
+
+            if content_type.lower().find('/xml') != -1:
+                # Remove invalid xml/utf-8 data
+                body = re.sub(self.__get_illegal_xml_chars_re(), '',
+                              body.decode('utf-8', 'ignore')).encode('utf-8')
+            else:
+                # Remove invalid utf-8 data
+                body = body.decode('utf-8', 'ignore').encode('utf-8')
+
             headers['Content-Type'] = content_type
             headers['Content-Length'] = str(len(body)) if body else '0'
         elif method == 'GET' and content_type is not None:
             headers = headers.copy()
             headers['Accept'] = content_type
 
-        response, content = self.http.request((self.baseUrl + url).encode('utf-8'), method, headers=headers, body=body)
+        response, content = self.http.request(
+            (self.baseUrl + url).encode('utf-8'), method,
+            headers=headers, body=body)
+
+        # Remove invalid utf-8 data
+        content = content.decode('utf-8', 'ignore').encode('utf-8')
+        # TODO: Why do we need this?
         content = content.translate(None, '\0')
         content = re.sub('system_user[%@][a-zA-Z0-9]+', 'guest', content)
-        _illegal_unichrs = [(0x00, 0x08), (0x0B, 0x0C), (0x0E, 0x1F),
-                            (0x7F, 0x84), (0x86, 0x9F), (0xFDD0, 0xFDDF),
-                            (0xFFFE, 0xFFFF)]
-        _illegal_ranges = ["%s-%s" % (unichr(low), unichr(high))
-                           for (low, high) in _illegal_unichrs]
-        _illegal_xml_chars_re = re.compile(u'[%s]' % u''.join(_illegal_ranges))
-        content = re.sub(_illegal_xml_chars_re, '', content.decode('utf-8')).encode('utf-8')
-        if response.status != 200 and response.status != 201 and (ignoreStatus != response.status):
+
+        # Remove invalid xml data
+        if response.get('content-type', '').lower().find('/xml') != -1:
+            content = re.sub(self.__get_illegal_xml_chars_re(), '', content)
+
+        if response.status not in (200, 201) and \
+                (ignoreStatus != response.status):
             raise youtrack.YouTrackException(url, response, content)
 
         return response, content
