@@ -19,7 +19,9 @@ EXISTING_FIELD_TYPES = {
     'resolved'          :   'date',
     'reporterName'      :   'user[1]',
     'watcherName'       :   'user[*]',
-    'voterName'         :   'user[*]'
+    'voterName'         :   'user[*]',
+    'markdown'          :   'string'
+
 }
 
 EXISTING_FIELDS = ['numberInProject', 'projectShortName'] + EXISTING_FIELD_TYPES.keys()

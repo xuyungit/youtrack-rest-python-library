@@ -122,9 +122,18 @@ class Connection(object):
             headers = headers.copy()
             headers['Accept'] = content_type
 
-        response, content = self.http.request(
-            (self.baseUrl + url).encode('utf-8'), method,
-            headers=headers, body=body)
+        if url.startswith('http'):
+            response, content = self.http.request(
+                url.encode('utf-8'),
+                method,
+                headers=headers,
+                body=body)
+        else:
+            response, content = self.http.request(
+                (self.baseUrl + url).encode('utf-8'),
+                method,
+                headers=headers,
+                body=body)
 
         # Remove invalid utf-8 data
         content = content.decode('utf-8', 'ignore').encode('utf-8')
@@ -420,6 +429,9 @@ class Connection(object):
         tt_settings = self.getProjectTimeTrackingSettings(projectId)
         if tt_settings and tt_settings.Enabled and tt_settings.TimeSpentField:
             bad_fields.append(tt_settings.TimeSpentField)
+
+        if not self.isMarkdownSupported():
+            bad_fields.append('markdown')
 
         xml = '<issues>\n'
         issue_records = dict([])
@@ -1142,6 +1154,20 @@ class Connection(object):
     def addValuesToEnumBundle(self, name, values):
         return ", ".join(self.addValueToEnumBundle(name, value) for value in values)
 
+    def getYouTrackBuildNumber(self):
+        response, content = self._req('GET',
+                                      self.url + '/api/config?fields=build',
+                                      ignoreStatus=404,
+                                      content_type='application/json')
+        if response.status != 200 or not content:
+            return 0
+        try:
+            return int(json.loads(content).get('build', 0))
+        except ValueError:
+            return 0
+
+    def isMarkdownSupported(self):
+        return self.getYouTrackBuildNumber() > 39406
 
     bundle_paths = {
         "enum": "bundle",
