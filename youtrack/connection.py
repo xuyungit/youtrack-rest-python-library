@@ -135,15 +135,17 @@ class Connection(object):
                 headers=headers,
                 body=body)
 
-        # Remove invalid utf-8 data
-        content = content.decode('utf-8', 'ignore').encode('utf-8')
+        if response.get('content-type', '').lower().find('/xml') != -1:
+            # Remove invalid xml/utf-8 data
+            content = re.sub(self.__get_illegal_xml_chars_re(), '',
+                             content.decode('utf-8', 'ignore')).encode('utf-8')
+        else:
+            # Remove invalid utf-8 data
+            content = content.decode('utf-8', 'ignore').encode('utf-8')
+
         # TODO: Why do we need this?
         content = content.translate(None, '\0')
         content = re.sub('system_user[%@][a-zA-Z0-9]+', 'guest', content)
-
-        # Remove invalid xml data
-        if response.get('content-type', '').lower().find('/xml') != -1:
-            content = re.sub(self.__get_illegal_xml_chars_re(), '', content)
 
         if response.status not in (200, 201) and \
                 (ignoreStatus != response.status):
@@ -152,18 +154,20 @@ class Connection(object):
         return response, content
 
     def _reqXml(self, method, url, body=None, ignoreStatus=None):
-        response, content = self._req(method, url, body, ignoreStatus, "application/xml")
-        if response.has_key('content-type'):
-            if (response["content-type"].find('application/xml') != -1 or response["content-type"].find(
-                'text/xml') != -1) and content is not None and content != '':
+        response, content = self._req(
+            method, url, body, ignoreStatus, "application/xml")
+        if "content-type" in response:
+            if response["content-type"].find("/xml") != -1 and content:
                 try:
                     return minidom.parseString(content)
-                except Exception:
+                except Exception as e:
+                    print(str(e))
                     return ""
-            elif response['content-type'].find('application/json') != -1 and content is not None and content != '':
+            elif response["content-type"].find("/json") != -1 and content:
                 try:
                     return json.loads(content)
-                except Exception:
+                except Exception as e:
+                    print(str(e))
                     return ""
 
         if method == 'PUT' and ('location' in response.keys()):
