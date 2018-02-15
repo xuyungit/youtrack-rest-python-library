@@ -728,3 +728,32 @@ class ProjectTimeTrackingSettings(YouTrackObject):
                 self['EstimateField'] = e.getAttribute('name')
             elif e.tagName.lower() == 'spenttime':
                 self['TimeSpentField'] = e.getAttribute('name')
+
+
+class WorkType(YouTrackObject):
+    def __init__(self, xml=None, youtrack=None):
+        self.id = None
+        self.name = None
+        self.autoAttached = None
+        YouTrackObject.__init__(self, xml, youtrack)
+
+    def _update(self, xml):
+        if xml is None:
+            return
+        if isinstance(xml, Document):
+            xml = xml.documentElement
+
+        for e in xml.childNodes:
+            self[e.tagName] = self._text(e)
+
+    def toXml(self):
+        attributes = "<name>%s</name>" % self.name
+        if self.autoAttached is not None:
+            attributes += "<autoAttached>%s</autoAttached>" % self.autoAttached
+        if self.id is not None:
+            attributes += "<id>%s</id>" % self.id
+
+        if isinstance(attributes, unicode):
+            attributes = attributes.encode('utf-8')
+
+        return "<workType>%s</workType>" % attributes

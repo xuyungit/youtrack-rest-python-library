@@ -105,19 +105,21 @@ class Connection(object):
         headers = self.headers
         if method == 'PUT' or method == 'POST':
             headers = headers.copy()
-            if content_type is None:
-                content_type = 'application/xml; charset=UTF-8'
+            if body:
+                if content_type is None:
+                    content_type = 'application/xml; charset=UTF-8'
 
-            if content_type.lower().find('/xml') != -1:
-                # Remove invalid xml/utf-8 data
-                body = re.sub(self.__get_illegal_xml_chars_re(), '',
-                              body.decode('utf-8', 'ignore')).encode('utf-8')
-            else:
-                # Remove invalid utf-8 data
-                body = body.decode('utf-8', 'ignore').encode('utf-8')
+                if content_type.lower().find('/xml') != -1:
+                    # Remove invalid xml/utf-8 data
+                    body = re.sub(
+                        self.__get_illegal_xml_chars_re(), '',
+                        body.decode('utf-8', 'ignore')).encode('utf-8')
+                else:
+                    # Remove invalid utf-8 data
+                    body = body.decode('utf-8', 'ignore').encode('utf-8')
 
-            headers['Content-Type'] = content_type
-            headers['Content-Length'] = str(len(body)) if body else '0'
+                headers['Content-Type'] = content_type
+                headers['Content-Length'] = str(len(body))
         elif method == 'GET' and content_type is not None:
             headers = headers.copy()
             headers['Accept'] = content_type
@@ -170,7 +172,7 @@ class Connection(object):
                     print(str(e))
                     return ""
 
-        if method == 'PUT' and ('location' in response.keys()):
+        if method == 'PUT' and ('location' in response):
             return 'Created: ' + response['location']
         else:
             return content
@@ -1053,7 +1055,62 @@ class Connection(object):
         xml += '</settings>'
         return self._reqXml(
             'PUT', '/admin/project/' + projectId + '/timetracking', xml)
-      
+
+    def get_work_types(self, project_id=None):
+        if project_id:
+            path = '/admin/project/%s/timetracking/worktype' % project_id
+        else:
+            path = '/admin/timetracking/worktype'
+        try:
+            xml = self._get(path)
+            return [youtrack.WorkType(e, self)
+                    for e in xml.documentElement.childNodes
+                    if e.nodeType == Node.ELEMENT_NODE]
+        except youtrack.YouTrackException as e:
+            print("Can't get work types", str(e))
+            return []
+
+    def create_work_type(self, name=None, auto_attached=None, work_type=None):
+        if work_type:
+            wt = work_type
+        else:
+            if not name:
+                raise ValueError("Work type name cannot be empty")
+            wt = youtrack.WorkType()
+            wt.name = name
+            wt.autoAttached = auto_attached
+        response, content = self._req(
+            'POST', '/admin/timetracking/worktype', wt.toXml())
+        return youtrack.WorkType(self._get(response['location']))
+
+    def create_work_type_safe(self,
+                              name=None, auto_attached=None, work_type=None):
+        try:
+            return self.create_work_type(name, auto_attached, work_type)
+        except youtrack.YouTrackException as e:
+            # Assume that this caused by not unique value and try to find
+            # original work type
+            if e.response.status not in (400, 409):
+                raise e
+            if work_type:
+                name_lc = utf8encode(work_type.name.lower())
+            else:
+                name_lc = utf8encode(name.lower())
+            for wt in self.get_work_types():
+                if utf8encode(wt.name.lower()) == name_lc:
+                    return wt
+            raise e
+
+    def attach_work_type_to_project(self, project_id, work_type_id):
+        self._req('PUT',
+                  '/admin/project/%s/timetracking/worktype/%s' %
+                  (project_id, work_type_id))
+
+    def create_project_work_type(
+            self, project_id, name=None, auto_attached=None, work_type=None):
+        wt = self.create_work_type_safe(name, auto_attached, work_type)
+        self.attach_work_type_to_project(project_id, wt.id)
+
     def getAllBundles(self, field_type):
         field_type = self.get_field_type(field_type)
         if field_type == "enum":

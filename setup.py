@@ -19,7 +19,7 @@ with open(path.join(here, 'README.rst')) as f:
 
 setup(
     name='youtrack',
-    version='0.1.5',
+    version='0.1.6',
     python_requires='>=2.6, <3',
     packages=['youtrack', 'youtrack.sync'],
     url='https://github.com/JetBrains/youtrack-rest-python-library',
