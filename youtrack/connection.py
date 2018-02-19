@@ -120,6 +120,7 @@ class Connection(object):
 
                 headers['Content-Type'] = content_type
                 headers['Content-Length'] = str(len(body))
+                headers['Accept'] = content_type
         elif method == 'GET' and content_type is not None:
             headers = headers.copy()
             headers['Accept'] = content_type
