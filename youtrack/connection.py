@@ -120,7 +120,6 @@ class Connection(object):
 
                 headers['Content-Type'] = content_type
                 headers['Content-Length'] = str(len(body))
-                headers['Accept'] = content_type
         elif method == 'GET' and content_type is not None:
             headers = headers.copy()
             headers['Accept'] = content_type
@@ -986,8 +985,13 @@ class Connection(object):
             xml = xml.encode('utf-8')
         if xml:
             xml = '<workItems>' + xml + '</workItems>'
-            self._reqXml('PUT',
-                '/import/issue/%s/workitems' % urlquote(issue_id), xml)
+            try:
+                self.headers['Accept'] = 'application/xml'
+                self._reqXml(
+                    'PUT',
+                    '/import/issue/%s/workitems' % urlquote(issue_id), xml)
+            finally:
+                del self.headers['Accept']
 
     def getSearchIntelliSense(self, query,
                               context=None, caret=None, options_limit=None):
