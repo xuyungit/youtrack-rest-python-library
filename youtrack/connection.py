@@ -772,7 +772,10 @@ class Connection(object):
 
     def getIssues(self, projectId, filter, after, max):
         #response, content = self._req('GET', '/project/issues/' + urlquote(projectId) + "?" +
-        response, content = self._req('GET', '/issue/byproject/' + urlquote(projectId) + "?" +
+        path = '/issue'
+        if projectId:
+            path += '/byproject/' + urlquote(projectId)
+        response, content = self._req('GET', path + "?" +
                                              urllib.urlencode({'after': str(after),
                                                                'max': str(max),
                                                                'filter': filter}))
