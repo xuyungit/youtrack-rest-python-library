@@ -430,7 +430,7 @@ class Connection(object):
         bad_fields = ['id', 'projectShortName', 'votes', 'commentsCount',
                       'historyUpdated', 'updatedByFullName', 'updaterFullName',
                       'reporterFullName', 'links', 'attachments', 'jiraId',
-                      'entityId', 'tags', 'sprint']
+                      'entityId', 'tags', 'sprint', 'wikified']
 
         tt_settings = self.getProjectTimeTrackingSettings(projectId)
         if tt_settings and tt_settings.Enabled and tt_settings.TimeSpentField:
