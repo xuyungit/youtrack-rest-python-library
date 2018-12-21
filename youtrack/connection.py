@@ -713,6 +713,7 @@ class Connection(object):
             _name = _name.encode('utf-8')
         if isinstance(_desc, unicode):
             _desc = _desc.encode('utf-8')
+        _name = _name.replace('/', ' ')
         return self._put('/admin/project/' + projectId + '?' +
                          urllib.urlencode({'projectName': _name,
                                            'description': _desc + ' ',
