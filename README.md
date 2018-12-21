@@ -26,10 +26,10 @@ To communicate with YouTrack, you need a connection.
 ```python
 from youtrack.connection import Connection as YouTrack
 
-// authentication request with permanent token
+# authentication request with permanent token
 yt = YouTrack('https://instance_name.myjetbrains.com/youtrack/', token='perm:abcdefghijklmn')
 
-// versus authentication with username and password
+# versus authentication with username and password
 yt = YouTrack('https://instance_name.myjetbrains.com/youtrack/', login='username', password='password')
 ```
 This request requires that you specify the base URL of the target YouTrack server. For YouTrack InCloud instances, your base URL includes the trailing `/youtrack`, as shown in the previous example.
