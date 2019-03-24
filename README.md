@@ -39,7 +39,7 @@ Once you have established a connection, your credentials are cached for subseque
 ## Supported Operations
 Most of the operations that are supported by the YouTrack REST API are mapped to methods for the `Connection` object. The Python client library, however, supports a simplified set of parameters. In some cases, like `createIssue`, the Python method supports a custom set of request parameters.
 
-To learn more about the YouTrack REST API, refer to the [YouTrack documentation](https://www.jetbrains.com/help/youtrack/standalone/YouTrack-REST-API-Reference.html).
+To learn more about the YouTrack REST API, refer to the [YouTrack documentation](https://www.jetbrains.com/help/youtrack/standalone/rest-api-reference.html).
 
 ## YouTrack Support
 Your feedback is always appreciated.
