@@ -709,16 +709,19 @@ class Connection(object):
     def createProjectDetailed(self, projectId, name, description, projectLeadLogin, startingNumber=1):
         _name = name
         _desc = description
+        _lead = projectLeadLogin
         if isinstance(_name, unicode):
             _name = _name.encode('utf-8')
         if isinstance(_desc, unicode):
             _desc = _desc.encode('utf-8')
+        if isinstance(_lead, unicode):
+            _lead = _lead.encode('utf-8')
         _name = _name.replace('/', ' ')
         return self._put('/admin/project/' + projectId + '?' +
                          urllib.urlencode({'projectName': _name,
                                            'description': _desc + ' ',
-                                           'projectLeadLogin': projectLeadLogin,
-                                           'lead': projectLeadLogin,
+                                           'projectLeadLogin': _lead,
+                                           'lead': _lead,
                                            'startingNumber': str(startingNumber)}))
 
     # TODO this function is deprecated
@@ -1256,3 +1259,4 @@ class Connection(object):
         "version": lambda xml, yt: youtrack.VersionBundle(xml, yt),
         "user": lambda xml, yt: youtrack.UserBundle(xml, yt)
     }
+
